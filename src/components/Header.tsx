@@ -1,3 +1,4 @@
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
 import ThemeToggle from './ThemeToggle'
 
@@ -35,12 +36,19 @@ export default function Header() {
         {/* Actions */}
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
-          <button
-            type="button"
-            className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 active:opacity-80"
-          >
-            Sign In
-          </button>
+          <SignedOut>
+            <SignInButton mode="modal" forceRedirectUrl="/dashboard">
+              <button
+                type="button"
+                className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:opacity-90 active:opacity-80"
+              >
+                Sign In
+              </button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
         </div>
 
       </nav>
