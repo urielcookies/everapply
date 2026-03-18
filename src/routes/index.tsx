@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   Brain,
   RefreshCw,
@@ -11,6 +11,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '#/components/ui/button'
+import { useAuth } from '@clerk/clerk-react'
+import { useEffect } from 'react'
 
 export const Route = createFileRoute('/')({ component: LandingPage })
 
@@ -230,6 +232,13 @@ function BottomCTA() {
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
 function LandingPage() {
+  const { isSignedIn } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isSignedIn) navigate({ to: '/dashboard' })
+  }, [isSignedIn, navigate])
+
   return (
     <main>
       <Hero />

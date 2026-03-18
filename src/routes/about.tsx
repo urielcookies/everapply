@@ -1,10 +1,18 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useAuth } from '@clerk/clerk-react'
+import { useEffect } from 'react'
 
 export const Route = createFileRoute('/about')({
   component: About,
 })
 
 function About() {
+  const { isSignedIn } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isSignedIn) navigate({ to: '/dashboard' })
+  }, [isSignedIn, navigate])
   return (
     <main className="mx-auto max-w-5xl px-4 py-20">
 
