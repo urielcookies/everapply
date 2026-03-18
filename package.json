@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
-    "build:ssg": "vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/prerender.mjs",
+    "build:ssg": "vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/prerender.mjs && cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "biome format",
