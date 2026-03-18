@@ -8,7 +8,12 @@ const NAV_ITEMS = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { isSignedIn } = useAuth()
   const { user } = useUser()
   const { openUserProfile, signOut } = useClerk()
@@ -16,12 +21,22 @@ export default function Sidebar() {
   if (!isSignedIn) return null
 
   return (
-    <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside className={`fixed top-14 z-50 flex h-[calc(100vh-3.5rem)] w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:sticky md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <nav className="flex flex-col gap-0.5 p-3">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}
             to={to as string}
+            onClick={onClose}
             className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             activeProps={{
               className: 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium bg-sidebar-accent text-sidebar-accent-foreground',
@@ -57,5 +72,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   )
 }

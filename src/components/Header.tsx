@@ -1,8 +1,14 @@
-import { SignedOut, SignInButton } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
+import { Menu, X } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 
-export default function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void
+  isSidebarOpen?: boolean
+}
+
+export default function Header({ onMenuToggle, isSidebarOpen }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
       <nav className="mx-auto flex h-14 max-w-7xl items-center px-4">
@@ -46,7 +52,16 @@ export default function Header() {
               </button>
             </SignInButton>
           </SignedOut>
-
+          <SignedIn>
+            <button
+              type="button"
+              onClick={onMenuToggle}
+              className="flex items-center justify-center rounded-md p-2 text-foreground transition-colors hover:bg-accent md:hidden"
+              aria-label="Toggle menu"
+            >
+              {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </SignedIn>
         </div>
 
       </nav>
