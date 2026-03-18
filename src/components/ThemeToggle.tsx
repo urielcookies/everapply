@@ -1,6 +1,9 @@
 import _ from 'lodash'
 import { useEffect, useState } from 'react'
 
+import { MoonIcon } from '@/components/icons/MoonIcon'
+import { SunIcon } from '@/components/icons/SunIcon'
+
 type ThemeMode = 'light' | 'dark'
 
 const VALID_MODES: ThemeMode[] = ['light', 'dark']
@@ -44,9 +47,9 @@ export default function ThemeToggle() {
       onClick={toggleMode}
       aria-label={label}
       title={label}
-      className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm transition hover:-translate-y-0.5"
+      className="rounded-full border border-border bg-card p-2 text-foreground shadow-sm transition hover:-translate-y-0.5"
     >
-      {mode === 'dark' ? 'Dark' : 'Light'}
+      {mode === 'dark' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
     </button>
   )
 }
