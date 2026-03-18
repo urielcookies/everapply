@@ -30,7 +30,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
 
-      <aside className={`fixed top-14 z-50 flex h-[calc(100vh-3.5rem)] w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:sticky md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:sticky md:w-56 md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <nav className="flex flex-col gap-0.5 p-3">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <Link
