@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 
+
 export const Route = createFileRoute('/')({ component: LandingPage })
 
 /* ─── Data ──────────────────────────────────────────────────────────────── */
