@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react'
+import { SignedOut, SignInButton } from '@clerk/clerk-react'
 import { Link } from '@tanstack/react-router'
 import ThemeToggle from './ThemeToggle'
 
@@ -46,9 +46,7 @@ export default function Header() {
               </button>
             </SignInButton>
           </SignedOut>
-          <SignedIn>
-            <UserButton />
-          </SignedIn>
+
         </div>
 
       </nav>

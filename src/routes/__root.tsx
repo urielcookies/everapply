@@ -5,6 +5,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import '../styles.css'
 import Header from '#/components/Header'
+import Sidebar from '#/components/Sidebar'
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -17,7 +18,12 @@ function RootComponent() {
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
 
       <Header />
-      <Outlet />
+      <div className="flex">
+        <Sidebar />
+        <div className="min-w-0 flex-1">
+          <Outlet />
+        </div>
+      </div>
       <TanStackDevtools
         config={{
           position: 'bottom-right',
