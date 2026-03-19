@@ -7,6 +7,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   base: '/',
+  ssr: {
+    noExternal: ['lodash'],
+  },
   plugins: [
     devtools(),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
