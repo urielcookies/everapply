@@ -319,7 +319,14 @@ function Onboarding() {
               <form.Subscribe selector={(s) => s.isSubmitting}>
                 {(isSubmitting) => (
                   <Button type="submit" disabled={isSubmitting} className="w-full">
-                    {isSubmitting ? 'Saving...' : 'Save & Go to Dashboard'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save & Go to Dashboard'
+                    )}
                   </Button>
                 )}
               </form.Subscribe>
