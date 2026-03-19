@@ -154,7 +154,7 @@ function EmptyState({ status }: { status: MatchStatus }) {
         <p className="text-sm font-semibold text-foreground">No {status} matches</p>
         {isEqual(status, 'new') ? (
           <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-            New matches are fetched at 7:00 AM and 10:00 AM daily. Check back then.
+            New matches are fetched at 7:00 AM Mountain Time daily, with an additional run at 10:00 AM on weekdays. Check back then.
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">Nothing here yet.</p>
