@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { formatDistanceToNow } from 'date-fns'
 import { filter, isEmpty, isEqual, map, times } from 'lodash'
+import { toast } from 'sonner'
+import axios from 'axios'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
@@ -137,6 +139,28 @@ function SkeletonCard() {
         </div>
       </div>
     </div>
+  )
+}
+
+function ErrorState({ error }: { error: Error }) {
+  const message = axios.isAxiosError(error)
+    ? (error.response?.data?.message ?? error.response?.data?.error ?? error.message)
+    : error.message
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center gap-4 py-24 text-center"
+    >
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-destructive/10">
+        <AlertTriangle size={24} className="text-destructive" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-semibold text-foreground">Failed to load matches</p>
+        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">{message}</p>
+      </div>
+    </motion.div>
   )
 }
 
@@ -285,7 +309,7 @@ function Dashboard() {
     }
   }, [user.resume_url])
 
-  const { data: matches, isLoading } = useQuery({
+  const { data: matches, isLoading, isError, error } = useQuery({
     queryKey: ['matches', activeTab],
     queryFn: () => everApplyApi<Match[]>(`/matches?status=${activeTab}`, getToken),
     enabled: !!user.resume_url,
@@ -299,6 +323,12 @@ function Dashboard() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matches'] })
+    },
+    onError: (err) => {
+      const message = axios.isAxiosError(err)
+        ? (err.response?.data?.message ?? err.response?.data?.error ?? err.message)
+        : err.message
+      toast.error('Failed to update status', { description: message })
     },
   })
 
@@ -334,6 +364,8 @@ function Dashboard() {
             <SkeletonCard key={i} />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState error={error as Error} />
       ) : isEmpty(matches) ? (
         <EmptyState status={activeTab} />
       ) : (
