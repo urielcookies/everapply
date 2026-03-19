@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import { includes, isEqual } from 'lodash'
 import { useEffect, useState } from 'react'
 
 import { MoonIcon } from '@/components/icons/MoonIcon'
@@ -14,7 +14,7 @@ function getInitialMode(): ThemeMode {
   }
 
   const stored = window.localStorage.getItem('theme')
-  return _.includes(VALID_MODES, stored) ? (stored as ThemeMode) : 'dark'
+  return includes(VALID_MODES, stored) ? (stored as ThemeMode) : 'dark'
 }
 
 function applyThemeMode(mode: ThemeMode) {
@@ -33,13 +33,13 @@ export default function ThemeToggle() {
   }, [])
 
   function toggleMode() {
-    const nextMode: ThemeMode = mode === 'dark' ? 'light' : 'dark'
+    const nextMode: ThemeMode = isEqual(mode, 'dark') ? 'light' : 'dark'
     setMode(nextMode)
     applyThemeMode(nextMode)
     window.localStorage.setItem('theme', nextMode)
   }
 
-  const label = `Theme: ${mode}. Click to switch to ${mode === 'dark' ? 'light' : 'dark'} mode.`
+  const label = `Theme: ${mode}. Click to switch to ${isEqual(mode, 'dark') ? 'light' : 'dark'} mode.`
 
   return (
     <button
@@ -49,7 +49,7 @@ export default function ThemeToggle() {
       title={label}
       className="rounded-full border border-border bg-card p-2 text-foreground shadow-sm transition hover:-translate-y-0.5"
     >
-      {mode === 'dark' ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+      {isEqual(mode, 'dark') ? <MoonIcon size={18} /> : <SunIcon size={18} />}
     </button>
   )
 }

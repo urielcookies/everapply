@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { isEqual } from 'lodash'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -46,7 +47,7 @@ function Onboarding() {
   const [isUploading, setIsUploading] = useState(false)
 
   const handleFile = useCallback((file: File) => {
-    if (file.type !== 'application/pdf') {
+    if (!isEqual(file.type, 'application/pdf')) {
       setUploadError('Only PDF files are accepted.')
       return
     }
@@ -120,12 +121,12 @@ function Onboarding() {
       <div className="mb-8">
         <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
           <span>Step {step} of 2</span>
-          <span>{step === 1 ? 'Resume Upload' : 'Preferences'}</span>
+          <span>{isEqual(step, 1) ? 'Resume Upload' : 'Preferences'}</span>
         </div>
-        <Progress value={step === 1 ? 50 : 100} />
+        <Progress value={isEqual(step, 1) ? 50 : 100} />
       </div>
 
-      {step === 1 && (
+      {isEqual(step, 1) && (
         <Card>
           <CardHeader>
             <CardTitle>Upload your resume</CardTitle>
@@ -193,7 +194,7 @@ function Onboarding() {
         </Card>
       )}
 
-      {step === 2 && (
+      {isEqual(step, 2) && (
         <Card>
           <CardHeader>
             <CardTitle>Set your preferences</CardTitle>
@@ -236,7 +237,7 @@ function Onboarding() {
                 name="location"
                 validators={{
                   onBlur: ({ value }) =>
-                    value.trim().length === 0 ? 'Location is required' : undefined,
+                    isEqual(value.trim().length, 0) ? 'Location is required' : undefined,
                 }}
               >
                 {(field) => (
