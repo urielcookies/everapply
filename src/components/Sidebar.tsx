@@ -1,6 +1,5 @@
 import { Link } from '@tanstack/react-router'
 import { useAuth, useUser, useClerk } from '@clerk/clerk-react'
-import { dark } from '@clerk/themes'
 import { LayoutDashboard, SlidersHorizontal, Settings, LogOut } from 'lucide-react'
 import { useUserStore } from '#/stores/useUserStore'
 
@@ -53,9 +52,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className="mt-auto border-t border-sidebar-border p-3 flex flex-col gap-0.5">
         <button
           type="button"
-          onClick={() => openUserProfile({
-            appearance: getClerkAppearance(window.localStorage.getItem('theme') === 'dark'),
-          })}
+          onClick={() => openUserProfile()}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-sidebar-accent"
         >
           <img
@@ -79,31 +76,4 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     </aside>
     </>
   )
-}
-
-function getClerkAppearance(isDark: boolean) {
-  return {
-    baseTheme: isDark ? dark : undefined,
-    variables: isDark
-      ? {
-          colorBackground: '#121a13',
-          colorInputBackground: '#1a221b',
-          colorText: '#e6ebe7',
-          colorTextSecondary: '#6b8a6e',
-          colorPrimary: '#4cb86c',
-          colorDanger: '#c05232',
-          borderRadius: '0.375rem',
-          fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif',
-        }
-      : {
-          colorBackground: '#f2f6f2',
-          colorInputBackground: '#ffffff',
-          colorText: '#111b14',
-          colorTextSecondary: '#5a7a5e',
-          colorPrimary: '#3a8752',
-          colorDanger: '#c04525',
-          borderRadius: '0.375rem',
-          fontFamily: 'Manrope, ui-sans-serif, system-ui, sans-serif',
-        },
-  }
 }
