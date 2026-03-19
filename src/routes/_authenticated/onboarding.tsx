@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { isEqual } from 'lodash'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { useMutation } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useAuth } from '@clerk/clerk-react'
 import { useUserStore } from '#/stores/useUserStore'
@@ -44,7 +45,6 @@ function Onboarding() {
   const [dragOver, setDragOver] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
 
   const handleFile = useCallback((file: File) => {
     if (!isEqual(file.type, 'application/pdf')) {
@@ -73,29 +73,30 @@ function Onboarding() {
     [handleFile],
   )
 
-  const handleUpload = useCallback(async () => {
-    if (!selectedFile) return
-    setIsUploading(true)
-    setUploadError(null)
-    try {
+  const { mutate: uploadResume, isPending: isUploading } = useMutation({
+    mutationFn: (file: File) => {
       const formData = new FormData()
-      formData.append('file', selectedFile)
-      const token = await getToken()
-      await everApplyApi('/users/resume', getToken, {
+      formData.append('file', file)
+      return everApplyApi('/users/resume', getToken, {
         method: 'POST',
         data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
       })
-      setStep(2)
-    } catch {
-      setUploadError('Failed to upload resume. Please try again.')
-    } finally {
-      setIsUploading(false)
-    }
-  }, [selectedFile, getToken])
+    },
+    onSuccess: () => setStep(2),
+    onError: () => setUploadError('Failed to upload resume. Please try again.'),
+  })
+
+  const { mutateAsync: savePreferences } = useMutation({
+    mutationFn: (data: Preferences) =>
+      everApplyApi('/users/preferences', getToken, {
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: async () => {
+      await fetchUser(getToken)
+      navigate({ to: '/dashboard' })
+    },
+  })
 
   const form = useForm({
     defaultValues: {
@@ -107,12 +108,7 @@ function Onboarding() {
     onSubmit: async ({ value }) => {
       const result = preferencesSchema.safeParse(value)
       if (!result.success) return
-      await everApplyApi('/users/preferences', getToken, {
-        method: 'PUT',
-        data: result.data,
-      })
-      await fetchUser(getToken)
-      navigate({ to: '/dashboard' })
+      await savePreferences(result.data)
     },
   })
 
@@ -185,7 +181,7 @@ function Onboarding() {
             )}
 
             <Button
-              onClick={handleUpload}
+              onClick={() => selectedFile && uploadResume(selectedFile)}
               disabled={!selectedFile || isUploading}
               className="w-full"
             >
