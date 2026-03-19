@@ -15,7 +15,7 @@ import { Label } from '#/components/ui/label'
 import { Slider } from '#/components/ui/slider'
 import { Switch } from '#/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
-import { Upload, FileText, X } from 'lucide-react'
+import { Upload, FileText, X, Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/_authenticated/onboarding')({
   component: Onboarding,
@@ -185,7 +185,14 @@ function Onboarding() {
               disabled={!selectedFile || isUploading}
               className="w-full"
             >
-              {isUploading ? 'Uploading...' : 'Upload & Continue'}
+              {isUploading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                'Upload & Continue'
+              )}
             </Button>
           </CardContent>
         </Card>
