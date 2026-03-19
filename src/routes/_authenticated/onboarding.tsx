@@ -223,7 +223,6 @@ function Onboarding() {
                   <div className="flex flex-col gap-2">
                     <Label>Work type</Label>
                     <ToggleGroup
-                      type="multiple"
                       value={field.state.value}
                       onValueChange={(val: string[]) => {
                         field.handleChange(val)
