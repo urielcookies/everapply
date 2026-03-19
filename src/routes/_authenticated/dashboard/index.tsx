@@ -253,7 +253,7 @@ function MatchCard({ match, onAction, isPending }: MatchCardProps) {
             Apply
           </Button>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger render={<span />}>
               <Button
                 variant="outline"
                 size="icon-sm"
