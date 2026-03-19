@@ -20,6 +20,7 @@ export async function everApplyApi<T>(
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
+      ...(options.data instanceof FormData ? { 'Content-Type': undefined } : {}),
     },
   })
 
