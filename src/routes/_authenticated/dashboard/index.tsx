@@ -4,11 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Bookmark, Send, X, ExternalLink, Briefcase } from 'lucide-react'
+import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { formatDistanceToNow } from 'date-fns'
 import { filter, isEmpty, isEqual, map, times } from 'lodash'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
+import { Button } from '#/components/ui/button'
 import Container from '#/components/Container'
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
@@ -122,7 +124,7 @@ function SkeletonCard() {
             <Skeleton className="h-4 w-14 rounded" />
           </div>
         </div>
-        <Skeleton className="h-[62px] w-16 rounded-xl" />
+        <Skeleton className="h-15.5 w-16 rounded-xl" />
       </div>
       <Skeleton className="h-3.5 w-full" />
       <Skeleton className="h-3.5 w-4/5" />
@@ -230,32 +232,40 @@ function MatchCard({ match, onAction, isPending }: MatchCardProps) {
         </div>
 
         <div className="flex w-full items-center gap-2 sm:w-auto">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="sm"
             disabled={isPending}
             onClick={() => onAction(match.id, 'saved')}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:opacity-40 sm:flex-none"
+            className="flex-1 sm:flex-none"
           >
             <Bookmark size={12} />
             Save
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
             disabled={isPending}
             onClick={() => onAction(match.id, 'applied')}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:bg-primary/85 disabled:opacity-40 sm:flex-none"
+            className="flex-1 sm:flex-none"
           >
             <Send size={12} />
             Apply
-          </button>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => onAction(match.id, 'dismissed')}
-            className="flex items-center justify-center rounded-lg border border-border p-1.5 text-muted-foreground transition-all hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive disabled:opacity-40"
-          >
-            <X size={13} />
-          </button>
+          </Button>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                disabled={isPending}
+                onClick={() => onAction(match.id, 'dismissed')}
+                className="hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
+              >
+                <X size={13} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Dismiss this job</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </motion.div>
@@ -300,15 +310,12 @@ function Dashboard() {
       {/* Tabs */}
       <div className="mb-6 flex w-full overflow-x-auto rounded-lg bg-muted/60 p-1 sm:w-fit">
         {map(TABS, (tab) => (
-          <button
+          <Button
             key={tab.value}
-            type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setActiveTab(tab.value)}
-            className={`shrink-0 rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-150 ${
-              isEqual(activeTab, tab.value)
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`shrink-0 ${isEqual(activeTab, tab.value) ? 'bg-card text-foreground shadow-sm hover:bg-card hover:text-foreground' : 'text-muted-foreground'}`}
           >
             {tab.label}
             {isEqual(activeTab, tab.value) && !isEmpty(matches) && (
@@ -316,7 +323,7 @@ function Dashboard() {
                 {matches!.length}
               </span>
             )}
-          </button>
+          </Button>
         ))}
       </div>
 

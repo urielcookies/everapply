@@ -8,6 +8,8 @@ import { useState } from 'react'
 import '../styles.css'
 import Header from '#/components/Header'
 import Sidebar from '#/components/Sidebar'
+import { Toaster } from '#/components/ui/sonner'
+import { TooltipProvider } from '#/components/ui/tooltip'
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -20,7 +22,7 @@ function RootComponent() {
 
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-
+      <TooltipProvider>
       <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} isSidebarOpen={sidebarOpen} />
       <div className="flex">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -28,6 +30,7 @@ function RootComponent() {
           <Outlet />
         </div>
       </div>
+      <Toaster richColors position="top-right" />
       <TanStackDevtools
         config={{
           position: 'bottom-right',
@@ -39,6 +42,7 @@ function RootComponent() {
           },
         ]}
       />
+      </TooltipProvider>
     </ClerkProvider>
   )
 }

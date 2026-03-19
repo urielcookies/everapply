@@ -97,9 +97,9 @@ function Onboarding() {
     }
   }, [selectedFile, getToken])
 
-  const form = useForm<Preferences>({
+  const form = useForm({
     defaultValues: {
-      work_type: [],
+      work_type: [] as string[],
       location: '',
       min_score: 70,
       security_clearance: false,
@@ -154,13 +154,14 @@ function Onboarding() {
                   <FileText size={32} className="text-primary" />
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">{selectedFile.name}</span>
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
                       onClick={(e) => { e.stopPropagation(); setSelectedFile(null) }}
-                      className="text-muted-foreground hover:text-destructive"
+                      className="hover:text-destructive"
                     >
                       <X size={14} />
-                    </button>
+                    </Button>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {(selectedFile.size / 1024).toFixed(0)} KB
@@ -216,9 +217,8 @@ function Onboarding() {
                   <div className="flex flex-col gap-2">
                     <Label>Work type</Label>
                     <ToggleGroup
-                      type="multiple"
                       value={field.state.value}
-                      onValueChange={(val) => field.handleChange(val)}
+                      onValueChange={(val: string[]) => field.handleChange(val)}
                       className="justify-start"
                     >
                       <ToggleGroupItem value="remote">Remote</ToggleGroupItem>
@@ -272,7 +272,7 @@ function Onboarding() {
                       max={100}
                       step={5}
                       value={[field.state.value]}
-                      onValueChange={([val]) => field.handleChange(val)}
+                      onValueChange={(val) => field.handleChange(typeof val === 'number' ? val : val[0])}
                     />
                     <p className="text-xs text-muted-foreground">
                       Only show jobs with a match score above this threshold.

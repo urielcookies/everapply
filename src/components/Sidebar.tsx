@@ -6,7 +6,7 @@ import { useUserStore } from '#/stores/useUserStore'
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/preferences', label: 'Preferences', icon: SlidersHorizontal },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  // { to: '/settings', label: 'Settings', icon: Settings },
 ] as const
 
 interface SidebarProps {
