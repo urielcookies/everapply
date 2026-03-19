@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useAuth, useUser, useClerk } from '@clerk/clerk-react'
 import { LayoutDashboard, SlidersHorizontal, Settings, LogOut } from 'lucide-react'
+import { useUserStore } from '#/stores/useUserStore'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,6 +18,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { isSignedIn } = useAuth()
   const { user } = useUser()
   const { openUserProfile, signOut } = useClerk()
+  const { clearUser } = useUserStore()
 
   if (!isSignedIn) return null
 
@@ -64,7 +66,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </button>
         <button
           type="button"
-          onClick={() => signOut()}
+          onClick={() => { signOut(); clearUser() }}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-destructive"
         >
           <LogOut size={16} />

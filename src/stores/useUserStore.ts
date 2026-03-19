@@ -12,7 +12,8 @@ export interface User {
 }
 
 interface UserStore {
-  user: User | null
+  user: User
+  isFetched: boolean
   isLoading: boolean
   error: string | null
   fetchUser: (getToken: () => Promise<string | null>) => Promise<void>
@@ -20,7 +21,8 @@ interface UserStore {
 }
 
 export const useUserStore = create<UserStore>((set) => ({
-  user: null,
+  user: {} as User,
+  isFetched: false,
   isLoading: false,
   error: null,
 
@@ -30,11 +32,11 @@ export const useUserStore = create<UserStore>((set) => ({
       const user = await everApplyApi<User>('/users/me', getToken, {
         method: 'POST',
       })
-      set({ user, isLoading: false })
+      set({ user, isFetched: true, isLoading: false })
     } catch (err) {
       set({ error: (err as Error).message, isLoading: false })
     }
   },
 
-  clearUser: () => set({ user: null, error: null }),
+  clearUser: () => set({ user: {} as User, isFetched: false, error: null }),
 }))
