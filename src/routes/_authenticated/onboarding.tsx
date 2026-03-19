@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_authenticated/onboarding')({
 
 const preferencesSchema = z.object({
   work_type: z.array(z.string()).min(1, 'Select at least one work type'),
-  location: z.string().min(1, 'Location is required'),
+  location: z.string().optional(),
   min_score: z.number().min(0).max(100),
   security_clearance: z.boolean(),
 })
@@ -214,7 +214,12 @@ function Onboarding() {
                     <Label>Work type</Label>
                     <ToggleGroup
                       value={field.state.value}
-                      onValueChange={(val: string[]) => field.handleChange(val)}
+                      onValueChange={(val: string[]) => {
+                        field.handleChange(val)
+                        if (val.length > 0 && val.every((t) => isEqual(t, 'remote'))) {
+                          form.setFieldValue('location', '')
+                        }
+                      }}
                       className="justify-start"
                     >
                       <ToggleGroupItem value="remote">Remote</ToggleGroupItem>
@@ -229,29 +234,35 @@ function Onboarding() {
               </form.Field>
 
               {/* Location */}
-              <form.Field
-                name="location"
-                validators={{
-                  onBlur: ({ value }) =>
-                    isEqual(value.trim().length, 0) ? 'Location is required' : undefined,
-                }}
-              >
-                {(field) => (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="location">Preferred location</Label>
-                    <Input
-                      id="location"
-                      placeholder="e.g. New York, NY or Remote"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                    />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
-                    )}
-                  </div>
-                )}
-              </form.Field>
+              <form.Subscribe selector={(s) => s.values.work_type}>
+                {(workType) =>
+                  workType.length > 0 && workType.every((t) => isEqual(t, 'remote')) ? null : (
+                    <form.Field
+                      name="location"
+                      validators={{
+                        onBlur: ({ value }) =>
+                          !value || isEqual(value.trim().length, 0) ? 'Location is required' : undefined,
+                      }}
+                    >
+                      {(field) => (
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor="location">Preferred location</Label>
+                          <Input
+                            id="location"
+                            placeholder="e.g. New York, NY or Remote"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
+                          />
+                          {field.state.meta.errors.length > 0 && (
+                            <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                          )}
+                        </div>
+                      )}
+                    </form.Field>
+                  )
+                }
+              </form.Subscribe>
 
               {/* Min Score */}
               <form.Field name="min_score">
