@@ -100,14 +100,17 @@ function Onboarding() {
 
   const form = useForm({
     defaultValues: {
-      work_type: [] as string[],
+      work_type: ['remote'] as string[],
       location: '',
       min_score: 70,
       security_clearance: false,
     },
     onSubmit: async ({ value }) => {
       const result = preferencesSchema.safeParse(value)
-      if (!result.success) return
+      if (!result.success) {
+        console.error('Preferences validation failed:', result.error.flatten())
+        return
+      }
       await savePreferences(result.data)
     },
   })
@@ -220,6 +223,7 @@ function Onboarding() {
                   <div className="flex flex-col gap-2">
                     <Label>Work type</Label>
                     <ToggleGroup
+                      type="multiple"
                       value={field.state.value}
                       onValueChange={(val: string[]) => {
                         field.handleChange(val)
