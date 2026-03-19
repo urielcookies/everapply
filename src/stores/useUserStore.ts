@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { everApplyApi } from '#/lib/api'
 
-interface User {
+export interface User {
   id: string
   clerk_user_id: string
   email: string
