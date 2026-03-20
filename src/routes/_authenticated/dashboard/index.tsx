@@ -198,18 +198,20 @@ function EmptyState({ status }: { status: MatchStatus }) {
 function ATSResumeModal({
   open,
   onOpenChange,
-  url,
+  matchId,
   jobTitle,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  url: string
+  matchId: string
   jobTitle: string
 }) {
+  const { getToken } = useAuth()
   const containerRef = useRef<HTMLDivElement>(null)
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState(1)
   const [containerWidth, setContainerWidth] = useState(600)
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -221,6 +223,25 @@ function ATSResumeModal({
     if (containerRef.current) observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    let objectUrl: string
+    getToken().then((token) => {
+      fetch(`${import.meta.env.VITE_API_URL}/matches/${matchId}/ats-resume`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+        .then((res) => res.blob())
+        .then((blob) => {
+          objectUrl = URL.createObjectURL(blob)
+          setBlobUrl(objectUrl)
+        })
+    })
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      setBlobUrl(null)
+    }
+  }, [open, matchId])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -270,7 +291,7 @@ function ATSResumeModal({
           className="flex-1 overflow-y-auto bg-[oklch(0.15_0_0)] px-4 py-6"
         >
           <Document
-            file={url}
+            file={blobUrl}
             onLoadSuccess={({ numPages }) => {
               setNumPages(numPages)
               setPageNumber(1)
@@ -477,7 +498,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
         <ATSResumeModal
           open={modalOpen}
           onOpenChange={setModalOpen}
-          url={atsUrl}
+          matchId={match.id}
           jobTitle={match.job.title}
         />
       )}
