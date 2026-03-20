@@ -305,9 +305,11 @@ interface MatchCardProps {
   match: Match
   onAction: (id: string, status: MatchStatus) => void
   isPending: boolean
+  isAnyGenerating: boolean
+  onGeneratingChange: (id: string | null) => void
 }
 
-function MatchCard({ match, onAction, isPending }: MatchCardProps) {
+function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingChange }: MatchCardProps) {
   const { getToken } = useAuth()
   const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
   const [modalOpen, setModalOpen] = useState(false)
@@ -319,11 +321,16 @@ function MatchCard({ match, onAction, isPending }: MatchCardProps) {
         getToken,
         { method: 'POST' },
       ),
+    onMutate: () => {
+      onGeneratingChange(match.id)
+    },
     onSuccess: (data) => {
       setAtsUrl(data.ats_resume_url)
       setModalOpen(true)
+      onGeneratingChange(null)
     },
     onError: (err) => {
+      onGeneratingChange(null)
       if (axios.isAxiosError(err)) {
         const status = err.response?.status
         const detail = err.response?.data?.detail
@@ -412,7 +419,7 @@ function MatchCard({ match, onAction, isPending }: MatchCardProps) {
               <Button
                 variant="outline"
                 size="icon-sm"
-                disabled={isPending || isGenerating}
+                disabled={isPending || isGenerating || isAnyGenerating}
                 onClick={handleAtsClick}
                 className={atsUrl ? 'text-primary hover:text-primary' : ''}
               >
@@ -484,6 +491,7 @@ function Dashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<MatchStatus>('new')
+  const [generatingMatchId, setGeneratingMatchId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user.resume_url) {
@@ -559,6 +567,8 @@ function Dashboard() {
                   match={match}
                   onAction={(id, status) => updateStatus({ id, status })}
                   isPending={isMutating && isEqual(variables?.id, match.id)}
+                  isAnyGenerating={!isEqual(generatingMatchId, null) && !isEqual(generatingMatchId, match.id)}
+                  onGeneratingChange={setGeneratingMatchId}
                 />
               </motion.div>
             ))}
