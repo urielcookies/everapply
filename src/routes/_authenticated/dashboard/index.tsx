@@ -419,6 +419,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
   })
 
   const handleAtsClick = () => {
+    console.log('atsUrl-->>', atsUrl);
     if (atsUrl) {
       setModalOpen(true)
     } else {
