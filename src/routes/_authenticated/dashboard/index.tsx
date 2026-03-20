@@ -268,10 +268,16 @@ function ATSResumeModal({
       fetch(`${import.meta.env.VITE_API_URL}/matches/${matchId}/ats-resume`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-        .then((res) => res.blob())
+        .then((res) => {
+          if (!res.ok) throw new Error(`Proxy returned ${res.status}`)
+          return res.blob()
+        })
         .then((blob) => {
           objectUrl = URL.createObjectURL(blob)
           setBlobUrl(objectUrl)
+        })
+        .catch((err) => {
+          console.error('ATS resume fetch failed:', err)
         })
     })
     return () => {
