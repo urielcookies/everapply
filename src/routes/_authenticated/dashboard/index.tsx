@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import { formatDistanceToNow } from 'date-fns'
@@ -246,7 +246,7 @@ function ATSResumeModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0"
+        className="flex h-[95vh] w-[90vw] sm:!max-w-5xl flex-col gap-0 overflow-hidden p-0"
         showCloseButton={false}
       >
         {/* Header */}
@@ -279,6 +279,21 @@ function ATSResumeModal({
                 </Button>
               </div>
             )}
+            <Tooltip>
+              <TooltipTrigger render={<span />}>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={!blobUrl}
+                  asChild
+                >
+                  <a href={blobUrl ?? '#'} download={`${jobTitle} - ATS Resume.pdf`}>
+                    <Download size={14} />
+                  </a>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Download PDF</TooltipContent>
+            </Tooltip>
             <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)}>
               <X size={14} />
             </Button>
@@ -288,7 +303,7 @@ function ATSResumeModal({
         {/* PDF Viewer */}
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto bg-[oklch(0.15_0_0)] px-4 py-6"
+          className="flex flex-col flex-1 items-center overflow-y-auto bg-[oklch(0.15_0_0)] py-4"
         >
           <Document
             file={blobUrl}
@@ -310,7 +325,7 @@ function ATSResumeModal({
           >
             <Page
               pageNumber={pageNumber}
-              width={containerWidth - 32}
+              width={containerWidth < 816 ? containerWidth - 16 : undefined}
               renderTextLayer
               renderAnnotationLayer
               className="shadow-2xl"
