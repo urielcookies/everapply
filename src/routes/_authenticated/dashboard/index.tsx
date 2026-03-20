@@ -16,7 +16,7 @@ import 'react-pdf/dist/Page/TextLayer.css'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
-import { Button } from '#/components/ui/button'
+import { Button, buttonVariants } from '#/components/ui/button'
 import Container from '#/components/Container'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
@@ -318,16 +318,15 @@ function ATSResumeModal({
             )}
             <Tooltip>
               <TooltipTrigger render={<span />}>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={!blobUrl}
-                  asChild
+                <a
+                  href={blobUrl ?? '#'}
+                  download={`${jobTitle} - ATS Resume.pdf`}
+                  className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                  aria-disabled={!blobUrl}
+                  onClick={!blobUrl ? (e) => e.preventDefault() : undefined}
                 >
-                  <a href={blobUrl ?? '#'} download={`${jobTitle} - ATS Resume.pdf`}>
-                    <Download size={14} />
-                  </a>
-                </Button>
+                  <Download size={14} />
+                </a>
               </TooltipTrigger>
               <TooltipContent>Download PDF</TooltipContent>
             </Tooltip>
