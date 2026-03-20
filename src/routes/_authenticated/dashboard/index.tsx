@@ -36,6 +36,7 @@ interface Job {
   remote_type: RemoteType
   source_url: string
   posted_at: string
+  description: string | null
 }
 
 interface Match {
@@ -195,6 +196,42 @@ function EmptyState({ status }: { status: MatchStatus }) {
   )
 }
 
+function JobDescriptionModal({
+  open,
+  onOpenChange,
+  title,
+  company,
+  description,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  company: string
+  description: string
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="flex max-h-[90vh] w-[90vw] sm:!max-w-2xl flex-col gap-0 overflow-hidden p-0"
+        showCloseButton={false}
+      >
+        <DialogHeader className="flex flex-row items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <DialogTitle className="truncate text-sm font-semibold">{title}</DialogTitle>
+            <p className="truncate text-xs text-muted-foreground">{company}</p>
+          </div>
+          <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)}>
+            <X size={14} />
+          </Button>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{description}</p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function ATSResumeModal({
   open,
   onOpenChange,
@@ -349,6 +386,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
   const { getToken } = useAuth()
   const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
   const [modalOpen, setModalOpen] = useState(false)
+  const [descriptionOpen, setDescriptionOpen] = useState(false)
 
   const { mutate: generateAtsResume, isPending: isGenerating } = useMutation({
     mutationFn: () =>
@@ -447,6 +485,17 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
             Source
             <ExternalLink size={10} />
           </a>
+          {match.job.description && (
+            <>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                onClick={() => setDescriptionOpen(true)}
+                className="text-xs font-medium text-muted-foreground transition-colors hover:text-primary whitespace-nowrap"
+              >
+                Description
+              </button>
+            </>
+          )}
         </div>
 
         <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -515,6 +564,15 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
           onOpenChange={setModalOpen}
           matchId={match.id}
           jobTitle={match.job.title}
+        />
+      )}
+      {match.job.description && (
+        <JobDescriptionModal
+          open={descriptionOpen}
+          onOpenChange={setDescriptionOpen}
+          title={match.job.title}
+          company={match.job.company}
+          description={match.job.description}
         />
       )}
     </motion.div>
