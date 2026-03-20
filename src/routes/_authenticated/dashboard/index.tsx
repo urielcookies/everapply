@@ -1,19 +1,25 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import { formatDistanceToNow } from 'date-fns'
 import { filter, isEmpty, isEqual, map, times } from 'lodash'
 import { toast } from 'sonner'
 import axios from 'axios'
+import { Document, Page, pdfjs } from 'react-pdf'
+import 'react-pdf/dist/Page/AnnotationLayer.css'
+import 'react-pdf/dist/Page/TextLayer.css'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
 import { Button } from '#/components/ui/button'
 import Container from '#/components/Container'
+
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
   component: Dashboard,
@@ -37,6 +43,7 @@ interface Match {
   score: number
   reason: string
   status: MatchStatus
+  ats_resume_url: string | null
   job: Job
 }
 
@@ -188,6 +195,112 @@ function EmptyState({ status }: { status: MatchStatus }) {
   )
 }
 
+function ATSResumeModal({
+  open,
+  onOpenChange,
+  url,
+  jobTitle,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  url: string
+  jobTitle: string
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [numPages, setNumPages] = useState<number>(0)
+  const [pageNumber, setPageNumber] = useState(1)
+  const [containerWidth, setContainerWidth] = useState(600)
+
+  useEffect(() => {
+    if (!open) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width)
+      }
+    })
+    if (containerRef.current) observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [open])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0"
+        showCloseButton={false}
+      >
+        {/* Header */}
+        <DialogHeader className="flex flex-row items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <DialogTitle className="truncate text-sm font-semibold">ATS Resume</DialogTitle>
+            <p className="truncate text-xs text-muted-foreground">{jobTitle}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {numPages > 1 && (
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={pageNumber <= 1}
+                  onClick={() => setPageNumber((p) => p - 1)}
+                >
+                  <ChevronLeft size={14} />
+                </Button>
+                <span className="min-w-[3rem] text-center text-xs text-muted-foreground">
+                  {pageNumber} / {numPages}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={pageNumber >= numPages}
+                  onClick={() => setPageNumber((p) => p + 1)}
+                >
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
+            )}
+            <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)}>
+              <X size={14} />
+            </Button>
+          </div>
+        </DialogHeader>
+
+        {/* PDF Viewer */}
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto bg-[oklch(0.15_0_0)] px-4 py-6"
+        >
+          <Document
+            file={url}
+            onLoadSuccess={({ numPages }) => {
+              setNumPages(numPages)
+              setPageNumber(1)
+            }}
+            loading={
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 size={20} className="animate-spin text-muted-foreground" />
+              </div>
+            }
+            error={
+              <div className="flex h-64 flex-col items-center justify-center gap-2">
+                <AlertTriangle size={20} className="text-destructive" />
+                <p className="text-xs text-muted-foreground">Failed to load PDF</p>
+              </div>
+            }
+          >
+            <Page
+              pageNumber={pageNumber}
+              width={containerWidth - 32}
+              renderTextLayer
+              renderAnnotationLayer
+              className="shadow-2xl"
+            />
+          </Document>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface MatchCardProps {
   match: Match
   onAction: (id: string, status: MatchStatus) => void
@@ -195,6 +308,44 @@ interface MatchCardProps {
 }
 
 function MatchCard({ match, onAction, isPending }: MatchCardProps) {
+  const { getToken } = useAuth()
+  const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
+  const [modalOpen, setModalOpen] = useState(false)
+
+  const { mutate: generateAtsResume, isPending: isGenerating } = useMutation({
+    mutationFn: () =>
+      everApplyApi<{ ats_resume_url: string }>(
+        `/matches/${match.id}/generate-ats-resume`,
+        getToken,
+        { method: 'POST' },
+      ),
+    onSuccess: (data) => {
+      setAtsUrl(data.ats_resume_url)
+      setModalOpen(true)
+    },
+    onError: (err) => {
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status
+        const detail = err.response?.data?.detail
+        if (status === 429) {
+          toast.error('Daily limit reached', { description: 'Try again tomorrow.' })
+        } else if (status === 400) {
+          toast.error('No resume uploaded', { description: detail ?? 'Please upload your resume first.' })
+        } else {
+          toast.error('Failed to generate ATS resume')
+        }
+      }
+    },
+  })
+
+  const handleAtsClick = () => {
+    if (atsUrl) {
+      setModalOpen(true)
+    } else {
+      generateAtsResume()
+    }
+  }
+
   return (
     <motion.div
       layout
@@ -256,6 +407,28 @@ function MatchCard({ match, onAction, isPending }: MatchCardProps) {
         </div>
 
         <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Tooltip>
+            <TooltipTrigger render={<span />}>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                disabled={isPending || isGenerating}
+                onClick={handleAtsClick}
+                className={atsUrl ? 'text-primary hover:text-primary' : ''}
+              >
+                {isGenerating ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : atsUrl ? (
+                  <FileText size={12} />
+                ) : (
+                  <Sparkles size={12} />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isGenerating ? 'Generating ATS resume…' : atsUrl ? 'View ATS Resume' : 'Generate ATS Resume'}
+            </TooltipContent>
+          </Tooltip>
           <Button
             variant="outline"
             size="sm"
@@ -292,6 +465,15 @@ function MatchCard({ match, onAction, isPending }: MatchCardProps) {
           </Tooltip>
         </div>
       </div>
+
+      {atsUrl && (
+        <ATSResumeModal
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          url={atsUrl}
+          jobTitle={match.job.title}
+        />
+      )}
     </motion.div>
   )
 }
