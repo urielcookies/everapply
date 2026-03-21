@@ -13,13 +13,14 @@ import axios from 'axios'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
 import { Button, buttonVariants } from '#/components/ui/button'
 import Container from '#/components/Container'
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
   component: Dashboard,
