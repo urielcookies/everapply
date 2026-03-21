@@ -20,6 +20,7 @@ import { Button, buttonVariants } from '#/components/ui/button'
 import Container from '#/components/Container'
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+console.log('workerSrc set to:', pdfjs.GlobalWorkerOptions.workerSrc)
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
   component: Dashboard,
