@@ -7,9 +7,6 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   base: '/',
-  resolve: {
-    dedupe: ['pdfjs-dist'],
-  },
   plugins: [
     devtools(),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
