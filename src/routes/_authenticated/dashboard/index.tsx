@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, ChevronLeft, ChevronRight, Download, ZoomIn, ZoomOut } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import { formatDistanceToNow } from 'date-fns'
@@ -247,7 +247,10 @@ function ATSResumeModal({
   const containerRef = useRef<HTMLDivElement>(null)
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState(1)
-  const [containerWidth, setContainerWidth] = useState(600)
+  const [containerWidth, setContainerWidth] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 600
+  )
+  const [scale, setScale] = useState(1)
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -264,6 +267,7 @@ function ATSResumeModal({
   useEffect(() => {
     if (!open) return
     let objectUrl: string
+    setScale(1)
     getToken().then((token) => {
       fetch(`${import.meta.env.VITE_API_URL}/matches/${matchId}/ats-resume`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -289,7 +293,7 @@ function ATSResumeModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[95vh] w-[90vw] sm:!max-w-5xl flex-col gap-0 overflow-hidden p-0"
+        className="flex flex-col gap-0 overflow-hidden p-0 top-0 left-0 translate-x-0 translate-y-0 h-dvh w-full max-w-full rounded-none ring-0 sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:h-[95vh] sm:w-[90vw] sm:max-w-5xl! sm:rounded-lg sm:ring-1"
         showCloseButton={false}
       >
         {/* Header */}
@@ -322,6 +326,27 @@ function ATSResumeModal({
                 </Button>
               </div>
             )}
+            <div className="hidden sm:flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={scale <= 0.5}
+                onClick={() => setScale((s) => Math.max(0.5, s - 0.25))}
+              >
+                <ZoomOut size={14} />
+              </Button>
+              <span className="min-w-[2.5rem] text-center text-xs text-muted-foreground">
+                {Math.round(scale * 100)}%
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                disabled={scale >= 2}
+                onClick={() => setScale((s) => Math.min(2, s + 0.25))}
+              >
+                <ZoomIn size={14} />
+              </Button>
+            </div>
             <Tooltip>
               <TooltipTrigger render={<span />}>
                 <a
@@ -345,7 +370,7 @@ function ATSResumeModal({
         {/* PDF Viewer */}
         <div
           ref={containerRef}
-          className="flex flex-col flex-1 items-center overflow-y-auto bg-[oklch(0.15_0_0)] py-4"
+          className="flex flex-col flex-1 items-center overflow-x-hidden overflow-y-auto sm:overflow-auto bg-background sm:bg-[oklch(0.15_0_0)] sm:py-4"
         >
           <Document
             file={blobUrl}
@@ -367,7 +392,7 @@ function ATSResumeModal({
           >
             <Page
               pageNumber={pageNumber}
-              width={containerWidth < 816 ? containerWidth - 16 : undefined}
+              width={Math.round((containerWidth < 816 ? containerWidth - 16 : 816) * scale)}
               renderTextLayer
               renderAnnotationLayer
               className="shadow-2xl"
