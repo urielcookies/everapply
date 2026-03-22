@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import axios from 'axios'
 import { isEqual } from 'lodash'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
@@ -45,6 +46,7 @@ function Onboarding() {
   const [dragOver, setDragOver] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [detectedName, setDetectedName] = useState<string | null>(null)
 
   const handleFile = useCallback((file: File) => {
     if (!isEqual(file.type, 'application/pdf')) {
@@ -77,13 +79,19 @@ function Onboarding() {
     mutationFn: (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      return everApplyApi('/users/resume', getToken, {
+      return everApplyApi<{ parsed_data?: { name?: string } }>('/users/resume', getToken, {
         method: 'POST',
         data: formData,
       })
     },
-    onSuccess: () => setStep(2),
-    onError: () => setUploadError('Failed to upload resume. Please try again.'),
+    onSuccess: (data) => {
+      setDetectedName(data.parsed_data?.name ?? null)
+      setStep(2)
+    },
+    onError: (err) => {
+      const detail = axios.isAxiosError(err) ? err.response?.data?.detail : null
+      setUploadError(detail ?? 'Failed to upload resume. Please try again.')
+    },
   })
 
   const { mutateAsync: savePreferences } = useMutation({
@@ -206,7 +214,7 @@ function Onboarding() {
           <CardHeader>
             <CardTitle>Set your preferences</CardTitle>
             <CardDescription>
-              Help us find jobs that match exactly what you're looking for.
+              {detectedName ? `Resume detected for ${detectedName}. ` : ''}Help us find jobs that match exactly what you're looking for.
             </CardDescription>
           </CardHeader>
           <CardContent>
