@@ -15,3 +15,7 @@ __unconfig*
 todos.json
 
 notes.txt
+
+# pdfjs workers (copied from node_modules at install/build time)
+public/pdf.worker.min.mjs
+public/dashboard/pdf.worker.mjs
