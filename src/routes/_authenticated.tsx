@@ -4,13 +4,21 @@ import { useEffect } from 'react'
 import { useUserStore } from '#/stores/useUserStore'
 import { Skeleton } from '#/components/ui/skeleton'
 
+function TrialExpiredBanner() {
+  return (
+    <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2.5 text-center text-xs font-medium text-destructive">
+      Your free trial has ended — new matches and ATS resume generation are paused.
+    </div>
+  )
+}
+
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout,
 })
 
 function AuthenticatedLayout() {
   const { isSignedIn, isLoaded, getToken } = useAuth()
-  const { isFetched, isLoading, fetchUser } = useUserStore()
+  const { isFetched, isLoading, fetchUser, user } = useUserStore()
 
   useEffect(() => {
     if (isLoaded && isSignedIn && !isFetched && !isLoading) {
@@ -35,5 +43,10 @@ function AuthenticatedLayout() {
     throw redirect({ to: '/' })
   }
 
-  return <Outlet />
+  return (
+    <>
+      {user.trial_expired && <TrialExpiredBanner />}
+      <Outlet />
+    </>
+  )
 }

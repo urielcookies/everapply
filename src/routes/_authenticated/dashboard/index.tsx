@@ -196,6 +196,26 @@ function EmptyState({ status }: { status: MatchStatus }) {
   )
 }
 
+function TrialExpiredState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center gap-4 py-24 text-center"
+    >
+      <div className="flex size-16 items-center justify-center rounded-2xl bg-destructive/10">
+        <AlertTriangle size={24} className="text-destructive" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-semibold text-foreground">Your free trial has ended</p>
+        <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+          New job matches are paused. Contact us to upgrade your account and resume matching.
+        </p>
+      </div>
+    </motion.div>
+  )
+}
+
 function JobDescriptionModal({
   open,
   onOpenChange,
@@ -409,10 +429,11 @@ interface MatchCardProps {
   onAction: (id: string, status: MatchStatus) => void
   isPending: boolean
   isAnyGenerating: boolean
+  isTrialExpired: boolean
   onGeneratingChange: (id: string | null) => void
 }
 
-function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingChange }: MatchCardProps) {
+function MatchCard({ match, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange }: MatchCardProps) {
   const { getToken } = useAuth()
   const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
   const [modalOpen, setModalOpen] = useState(false)
@@ -534,7 +555,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
               <Button
                 variant="outline"
                 size="icon-sm"
-                disabled={isPending || isGenerating || isAnyGenerating}
+                disabled={isPending || isGenerating || isAnyGenerating || (isTrialExpired && !atsUrl)}
                 onClick={handleAtsClick}
                 className={atsUrl ? 'text-primary hover:text-primary' : ''}
               >
@@ -548,7 +569,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, onGeneratingCh
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {isGenerating ? 'Generating ATS resume…' : atsUrl ? 'View ATS Resume' : 'Generate ATS Resume'}
+              {isGenerating ? 'Generating ATS resume…' : atsUrl ? 'View ATS Resume' : isTrialExpired ? 'Trial ended — upgrade to generate ATS resumes' : 'Generate ATS Resume'}
             </TooltipContent>
           </Tooltip>
           <Button
@@ -680,6 +701,8 @@ function Dashboard() {
         </div>
       ) : isError ? (
         <ErrorState error={error as Error} />
+      ) : user.trial_expired && isEqual(activeTab, 'new') ? (
+        <TrialExpiredState />
       ) : isEmpty(matches) ? (
         <EmptyState status={activeTab} />
       ) : (
@@ -692,6 +715,7 @@ function Dashboard() {
                   onAction={(id, status) => updateStatus({ id, status })}
                   isPending={isMutating && isEqual(variables?.id, match.id)}
                   isAnyGenerating={!isEqual(generatingMatchId, null) && !isEqual(generatingMatchId, match.id)}
+                  isTrialExpired={user.trial_expired}
                   onGeneratingChange={setGeneratingMatchId}
                 />
               </motion.div>

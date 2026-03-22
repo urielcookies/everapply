@@ -8,6 +8,8 @@ export interface User {
   resume_url: string | null
   preferences: Record<string, unknown> | null
   is_free: boolean
+  is_whitelisted: boolean
+  trial_expired: boolean
   parsed_data: Record<string, unknown> | null
 }
 
