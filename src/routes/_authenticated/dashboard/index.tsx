@@ -1,25 +1,20 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2 } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import { formatDistanceToNow } from 'date-fns'
 import { filter, isEmpty, isEqual, map, times } from 'lodash'
 import { toast } from 'sonner'
 import axios from 'axios'
-import { Document, Page, pdfjs } from 'react-pdf'
-import 'react-pdf/dist/Page/AnnotationLayer.css'
-import 'react-pdf/dist/Page/TextLayer.css'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
-import { Button, buttonVariants } from '#/components/ui/button'
+import { Button } from '#/components/ui/button'
 import Container from '#/components/Container'
-
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
   component: Dashboard,
@@ -244,26 +239,13 @@ function ATSResumeModal({
   jobTitle: string
 }) {
   const { getToken } = useAuth()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [numPages, setNumPages] = useState<number>(0)
-  const [pageNumber, setPageNumber] = useState(1)
-  const [containerWidth, setContainerWidth] = useState(600)
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
-      }
-    })
-    if (containerRef.current) observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [open])
+  const [fetchError, setFetchError] = useState(false)
 
   useEffect(() => {
     if (!open) return
     let objectUrl: string
+    setFetchError(false)
     getToken().then((token) => {
       fetch(`${import.meta.env.VITE_API_URL}/matches/${matchId}/ats-resume`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -278,11 +260,13 @@ function ATSResumeModal({
         })
         .catch((err) => {
           console.error('ATS resume fetch failed:', err)
+          setFetchError(true)
         })
     })
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl)
       setBlobUrl(null)
+      setFetchError(false)
     }
   }, [open, matchId])
 
@@ -298,82 +282,28 @@ function ATSResumeModal({
             <DialogTitle className="truncate text-sm font-semibold">ATS Resume</DialogTitle>
             <p className="truncate text-xs text-muted-foreground">{jobTitle}</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {numPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={pageNumber <= 1}
-                  onClick={() => setPageNumber((p) => p - 1)}
-                >
-                  <ChevronLeft size={14} />
-                </Button>
-                <span className="min-w-[3rem] text-center text-xs text-muted-foreground">
-                  {pageNumber} / {numPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={pageNumber >= numPages}
-                  onClick={() => setPageNumber((p) => p + 1)}
-                >
-                  <ChevronRight size={14} />
-                </Button>
-              </div>
-            )}
-            <Tooltip>
-              <TooltipTrigger render={<span />}>
-                <a
-                  href={blobUrl ?? '#'}
-                  download={`${jobTitle} - ATS Resume.pdf`}
-                  className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-                  aria-disabled={!blobUrl}
-                  onClick={!blobUrl ? (e) => e.preventDefault() : undefined}
-                >
-                  <Download size={14} />
-                </a>
-              </TooltipTrigger>
-              <TooltipContent>Download PDF</TooltipContent>
-            </Tooltip>
-            <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)}>
-              <X size={14} />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon-sm" onClick={() => onOpenChange(false)}>
+            <X size={14} />
+          </Button>
         </DialogHeader>
 
         {/* PDF Viewer */}
-        <div
-          ref={containerRef}
-          className="flex flex-col flex-1 items-center overflow-y-auto bg-[oklch(0.15_0_0)] py-4"
-        >
-          <Document
-            file={blobUrl}
-            onLoadSuccess={({ numPages }) => {
-              setNumPages(numPages)
-              setPageNumber(1)
-            }}
-            loading={
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 size={20} className="animate-spin text-muted-foreground" />
-              </div>
-            }
-            error={
-              <div className="flex h-64 flex-col items-center justify-center gap-2">
-                <AlertTriangle size={20} className="text-destructive" />
-                <p className="text-xs text-muted-foreground">Failed to load PDF</p>
-              </div>
-            }
-          >
-            <Page
-              pageNumber={pageNumber}
-              width={containerWidth < 816 ? containerWidth - 16 : undefined}
-              renderTextLayer
-              renderAnnotationLayer
-              className="shadow-2xl"
-            />
-          </Document>
-        </div>
+        {fetchError ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2">
+            <AlertTriangle size={20} className="text-destructive" />
+            <p className="text-xs text-muted-foreground">Failed to load PDF</p>
+          </div>
+        ) : blobUrl ? (
+          <iframe
+            src={blobUrl}
+            className="flex-1 w-full border-0"
+            title={`${jobTitle} - ATS Resume`}
+          />
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            <Loader2 size={20} className="animate-spin text-muted-foreground" />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
