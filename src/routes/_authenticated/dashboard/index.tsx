@@ -278,6 +278,13 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, isTrialExpired
       setAtsUrl(data.ats_resume_url)
       setModalOpen(true)
       onGeneratingChange(null)
+      everApplyApi<{ remaining: number; limit: number }>('/matches/ats-usage', getToken)
+        .then(({ remaining, limit }) => {
+          toast.success('Resume ready', { description: `${remaining} of ${limit} remaining today` })
+        })
+        .catch(() => {
+          toast.success('Resume ready')
+        })
     },
     onError: (err) => {
       onGeneratingChange(null)
