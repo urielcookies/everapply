@@ -10,6 +10,10 @@ import {
   ListChecks,
   Sparkles,
   BookmarkCheck,
+  Zap,
+  Target,
+  UserCheck,
+  FlaskConical,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '#/components/ui/button'
@@ -87,9 +91,9 @@ const FEATURES: Feature[] = [
   },
   {
     icon: Sparkles,
-    title: 'ATS resume generation',
+    title: '4 AI resume modes',
     description:
-      'Generate a resume tailored to any matched job in one click — optimized for applicant tracking systems, ready to download.',
+      'From auto-generated job match resumes to a full resume playground — four distinct AI modes to optimize, tailor, and benchmark your resume.',
   },
   {
     icon: BookmarkCheck,
@@ -216,6 +220,73 @@ function Features() {
   )
 }
 
+const RESUME_MODES = [
+  {
+    icon: Zap,
+    label: 'Automatic',
+    title: 'Job Match ATS Resume',
+    description:
+      'Every job match gets a tailored ATS resume in one click. Your resume, rewritten to align with the specific job description — no fabrication, no fluff.',
+  },
+  {
+    icon: Target,
+    label: 'Manual',
+    title: 'Targeted Resume',
+    description:
+      'Paste any job description and get a tailored version of your resume instantly. Same AI, fully on demand.',
+  },
+  {
+    icon: UserCheck,
+    label: 'Realistic',
+    title: 'Boost My Resume',
+    description:
+      'Keeps your real info — name, companies, dates, education — but AI-generates optimized bullet points, skills, and summary to match the role perfectly.',
+  },
+  {
+    icon: FlaskConical,
+    label: 'Sandbox',
+    title: 'Ideal Candidate',
+    description:
+      'Generates a completely fictional perfect candidate resume for any job. Use it to understand exactly what a top ATS resume looks like for a given role.',
+  },
+]
+
+function ResumeModes() {
+  return (
+    <section className="border-t border-border">
+      <div className="mx-auto max-w-5xl px-4 py-20">
+        <div className="mb-12">
+          <p className="mb-2 font-mono text-sm font-medium text-primary">Resume generation</p>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            Four AI modes. One platform.
+          </h2>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Most tools do one thing. EverApply gives you four distinct ways to generate, optimize, and benchmark your resume — each powered by a separate AI prompt built for that specific use case.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {_.map(RESUME_MODES, ({ icon: Icon, label, title, description }) => (
+            <div key={title} className="flex flex-col gap-4 rounded-lg border border-border bg-card p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon size={16} className="text-primary" />
+                </div>
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {label}
+                </span>
+              </div>
+              <div>
+                <h3 className="mb-1.5 text-sm font-semibold text-foreground">{title}</h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function BottomCTA() {
   return (
     <section className="border-t border-border">
@@ -250,6 +321,7 @@ function LandingPage() {
       <Screenshot />
       <HowItWorks />
       <Features />
+      <ResumeModes />
       <BottomCTA />
     </main>
   )
