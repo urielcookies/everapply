@@ -4,8 +4,8 @@ import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { useClerk } from '@clerk/clerk-react'
 import axios from 'axios'
-import { isEqual } from 'lodash'
-import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban } from 'lucide-react'
+import { isEqual, map } from 'lodash'
+import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
@@ -16,6 +16,17 @@ import { Button } from '#/components/ui/button'
 export const Route = createFileRoute('/_authenticated/settings')({
   component: Settings,
 })
+
+/* ─── Types ──────────────────────────────────────────────────────────────── */
+
+interface ParsedData {
+  name: string
+  skills: string[]
+  titles: string[]
+  seniority: 'junior' | 'mid' | 'senior'
+  years_exp: number
+  summary: string
+}
 
 /* ─── Plan badge ─────────────────────────────────────────────────────────── */
 
@@ -268,6 +279,74 @@ function Settings() {
             </div>
           )}
         </Section>
+
+        {/* Resume insights */}
+        {user.parsed_data && (() => {
+          const parsed = user.parsed_data as unknown as ParsedData
+          return (
+            <Section
+              icon={<Brain size={14} />}
+              title="Resume insights"
+              description="What was extracted from your resume. If something looks off, upload a new one."
+            >
+              <div className="flex flex-col gap-4">
+
+                {/* Name / Seniority / Experience */}
+                <div className="rounded-xl border border-border bg-muted/30 divide-y divide-border">
+                  <div className="flex items-center justify-between px-4 py-3.5">
+                    <span className="text-xs text-muted-foreground">Name</span>
+                    <span className="text-sm font-medium text-foreground">{parsed.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3.5">
+                    <span className="text-xs text-muted-foreground">Seniority</span>
+                    <span className="text-sm font-medium capitalize text-foreground">{parsed.seniority}</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3.5">
+                    <span className="text-xs text-muted-foreground">Experience</span>
+                    <span className="text-sm font-medium text-foreground">{parsed.years_exp} years</span>
+                  </div>
+                </div>
+
+                {/* Titles */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Titles</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {map(parsed.titles, (title) => (
+                      <span
+                        key={title}
+                        className="rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                      >
+                        {title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Skills</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {map(parsed.skills, (skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Summary</span>
+                  <p className="text-sm leading-relaxed text-foreground">{parsed.summary}</p>
+                </div>
+
+              </div>
+            </Section>
+          )
+        })()}
 
         {/* Account */}
         <Section
