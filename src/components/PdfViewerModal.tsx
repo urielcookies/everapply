@@ -40,7 +40,9 @@ export default function PdfViewerModal({
   )
   const [scale, setScale] = useState(1)
   const [fetchedBlobUrl, setFetchedBlobUrl] = useState<string | null>(null)
+  const [serverFilename, setServerFilename] = useState<string | null>(null)
   const activeBlobUrl = externalBlobUrl ?? fetchedBlobUrl
+  const activeDownloadName = serverFilename ?? downloadName
 
   useEffect(() => {
     if (!open) return
@@ -64,6 +66,11 @@ export default function PdfViewerModal({
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
       if (!res.ok) throw new Error(`Fetch returned ${res.status}`)
+      const disposition = res.headers.get('Content-Disposition')
+      if (disposition) {
+        const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';\r\n]+)["']?/i)
+        if (match?.[1]) setServerFilename(decodeURIComponent(match[1]))
+      }
       const blob = await res.blob()
       objectUrl = URL.createObjectURL(blob)
       setFetchedBlobUrl(objectUrl)
@@ -76,6 +83,7 @@ export default function PdfViewerModal({
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl)
       setFetchedBlobUrl(null)
+      setServerFilename(null)
     }
   }, [open, url, externalBlobUrl])
 
@@ -142,7 +150,7 @@ export default function PdfViewerModal({
               <TooltipTrigger render={<span />}>
                 <a
                   href={activeBlobUrl ?? '#'}
-                  download={downloadName}
+                  download={activeDownloadName}
                   className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
                   aria-disabled={!activeBlobUrl}
                   onClick={!activeBlobUrl ? (e) => e.preventDefault() : undefined}
