@@ -183,7 +183,7 @@ function TargetedResume() {
             </p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Your resume is tailored to the job and opens as a preview
+              Your resume will open as a preview. Make sure to download it since it won't be saved.
             </p>
           )}
           <Button
