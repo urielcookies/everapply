@@ -383,7 +383,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, isTrialExpired
 
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <Tooltip>
-            <TooltipTrigger render={<span />}>
+            <TooltipTrigger render={<span className={isAnyGenerating ? 'cursor-not-allowed' : ''} />}>
               <Button
                 variant="outline"
                 size="icon-sm"
@@ -401,7 +401,7 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, isTrialExpired
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {isGenerating ? 'Generating ATS resume…' : atsUrl ? 'View ATS Resume' : isTrialExpired ? 'Trial ended — upgrade to generate ATS resumes' : 'Generate ATS Resume'}
+              {isGenerating ? 'Generating ATS resume…' : isAnyGenerating ? 'A resume is being generated, please wait' : atsUrl ? 'View ATS Resume' : isTrialExpired ? 'Trial ended — upgrade to generate ATS resumes' : 'Generate ATS Resume'}
             </TooltipContent>
           </Tooltip>
           <Button
