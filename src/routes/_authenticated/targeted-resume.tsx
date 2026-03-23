@@ -145,7 +145,7 @@ function TargetedResume() {
     <>
     <Container
       title="Targeted Resume"
-      description="Paste a job description and get a tailored, ATS-optimized resume — downloaded instantly."
+      description="Copy a job posting from Indeed, LinkedIn, ZipRecruiter, or anywhere else and paste it here. We'll use your resume on file to generate the most ATS-optimized version we can for that specific role."
     >
       <div className="flex max-w-2xl flex-col gap-6">
 
