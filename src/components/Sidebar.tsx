@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { useAuth, useUser, useClerk } from '@clerk/clerk-react'
-import { LayoutDashboard, SlidersHorizontal, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, SlidersHorizontal, Settings, LogOut, FileOutput } from 'lucide-react'
 import { useUserStore } from '#/stores/useUserStore'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/targeted-resume', label: 'Targeted Resume', icon: FileOutput },
   { to: '/preferences', label: 'Preferences', icon: SlidersHorizontal },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const

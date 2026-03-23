@@ -12,10 +12,12 @@ pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 interface PdfViewerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  url: string | null
+  url?: string | null
+  externalBlobUrl?: string | null
   title: string
   subtitle?: string
   downloadName: string
+  notice?: string
   getToken?: () => Promise<string | null>
 }
 
@@ -23,9 +25,11 @@ export default function PdfViewerModal({
   open,
   onOpenChange,
   url,
+  externalBlobUrl,
   title,
   subtitle,
   downloadName,
+  notice,
   getToken,
 }: PdfViewerModalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -35,7 +39,8 @@ export default function PdfViewerModal({
     typeof window !== 'undefined' ? window.innerWidth : 600
   )
   const [scale, setScale] = useState(1)
-  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [fetchedBlobUrl, setFetchedBlobUrl] = useState<string | null>(null)
+  const activeBlobUrl = externalBlobUrl ?? fetchedBlobUrl
 
   useEffect(() => {
     if (!open) return
@@ -49,7 +54,7 @@ export default function PdfViewerModal({
   }, [open])
 
   useEffect(() => {
-    if (!open || !url) return
+    if (!open || !url || externalBlobUrl) return
     let objectUrl: string
     setScale(1)
 
@@ -61,7 +66,7 @@ export default function PdfViewerModal({
       if (!res.ok) throw new Error(`Fetch returned ${res.status}`)
       const blob = await res.blob()
       objectUrl = URL.createObjectURL(blob)
-      setBlobUrl(objectUrl)
+      setFetchedBlobUrl(objectUrl)
     }
 
     doFetch().catch((err) => {
@@ -70,9 +75,9 @@ export default function PdfViewerModal({
 
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl)
-      setBlobUrl(null)
+      setFetchedBlobUrl(null)
     }
-  }, [open, url])
+  }, [open, url, externalBlobUrl])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -136,11 +141,11 @@ export default function PdfViewerModal({
             <Tooltip>
               <TooltipTrigger render={<span />}>
                 <a
-                  href={blobUrl ?? '#'}
+                  href={activeBlobUrl ?? '#'}
                   download={downloadName}
                   className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-                  aria-disabled={!blobUrl}
-                  onClick={!blobUrl ? (e) => e.preventDefault() : undefined}
+                  aria-disabled={!activeBlobUrl}
+                  onClick={!activeBlobUrl ? (e) => e.preventDefault() : undefined}
                 >
                   <Download size={14} />
                 </a>
@@ -153,13 +158,21 @@ export default function PdfViewerModal({
           </div>
         </DialogHeader>
 
+        {/* Notice */}
+        {notice && (
+          <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-5 py-2">
+            <AlertTriangle size={12} className="shrink-0 text-amber-500" />
+            <p className="text-xs text-amber-600 dark:text-amber-400">{notice}</p>
+          </div>
+        )}
+
         {/* PDF Viewer */}
         <div
           ref={containerRef}
           className="flex flex-col flex-1 items-center overflow-x-hidden overflow-y-auto sm:overflow-auto bg-background sm:bg-[oklch(0.15_0_0)] sm:py-4"
         >
           <Document
-            file={blobUrl}
+            file={activeBlobUrl}
             onLoadSuccess={({ numPages }) => {
               setNumPages(numPages)
               setPageNumber(1)
