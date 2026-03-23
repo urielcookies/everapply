@@ -81,6 +81,7 @@ function TargetedResume() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null)
+  const [downloadName, setDownloadName] = useState('Resume.pdf')
   const [modalOpen, setModalOpen] = useState(false)
 
   const { data: usage, refetch: refetchUsage } = useQuery({
@@ -115,6 +116,12 @@ function TargetedResume() {
           setError(json.detail ?? 'Something went wrong. Please try again.')
         }
         return
+      }
+
+      const disposition = res.headers.get('Content-Disposition')
+      if (disposition) {
+        const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';\r\n]+)["']?/i)
+        if (match?.[1]) setDownloadName(decodeURIComponent(match[1]))
       }
 
       const blob = await res.blob()
@@ -212,7 +219,7 @@ function TargetedResume() {
       }}
       externalBlobUrl={previewBlobUrl}
       title="Targeted Resume"
-      downloadName="Targeted Resume.pdf"
+      downloadName={downloadName}
       notice="Like what you see? Download it. This resume isn't saved and won't be retrievable later."
     />
     </>
