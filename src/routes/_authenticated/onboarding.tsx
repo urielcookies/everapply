@@ -187,6 +187,10 @@ function Onboarding() {
               )}
             </div>
 
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Tip: AI-generated resumes are only as strong as your base resume — the more detail and specific achievements you include, the better your tailored resumes will be.
+            </p>
+
             {uploadError && (
               <p className="text-sm text-destructive">{uploadError}</p>
             )}
