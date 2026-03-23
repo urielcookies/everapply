@@ -443,7 +443,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
                   className="flex-1 sm:flex-none"
                 >
                   <Send size={12} />
-                  Apply
+                  Mark Applied
                 </Button>
               )}
               <Tooltip>
