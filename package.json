@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "build": "vite build",
-    "build:ssg": "vite build && cp dist/index.html dist/404.html",
+    "build:ssg": "vite build && node scripts/prerender.mjs && cp dist/index.html dist/404.html",
     "preview": "vite preview",
     "test": "vitest run",
     "format": "biome format",
@@ -60,6 +60,7 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^28.1.0",
+    "puppeteer": "^24.40.0",
     "typescript": "^5.7.2",
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^5.1.4",
