@@ -51,10 +51,11 @@ jobs:
 
       - name: Create SPA fallback routes
         run: |
-          mkdir -p dist/dashboard dist/onboarding dist/preferences
+          mkdir -p dist/dashboard dist/onboarding dist/preferences dist/settings
           cp dist/index.html dist/dashboard/index.html
           cp dist/index.html dist/onboarding/index.html
           cp dist/index.html dist/preferences/index.html
+          cp dist/index.html dist/settings/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -7,7 +7,6 @@ export interface User {
   email: string
   resume_url: string | null
   preferences: Record<string, unknown> | null
-  is_free: boolean
   is_whitelisted: boolean
   is_paid: boolean
   trial_expired: boolean
