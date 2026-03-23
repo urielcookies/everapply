@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2 } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, RotateCcw } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import PdfViewerModal from '#/components/PdfViewerModal'
@@ -251,6 +251,7 @@ function JobDescriptionModal({
 
 interface MatchCardProps {
   match: Match
+  currentStatus: MatchStatus
   onAction: (id: string, status: MatchStatus) => void
   isPending: boolean
   isAnyGenerating: boolean
@@ -258,7 +259,7 @@ interface MatchCardProps {
   onGeneratingChange: (id: string | null) => void
 }
 
-function MatchCard({ match, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange }: MatchCardProps) {
+function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange }: MatchCardProps) {
   const { getToken } = useAuth()
   const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
   const [modalOpen, setModalOpen] = useState(false)
@@ -404,40 +405,63 @@ function MatchCard({ match, onAction, isPending, isAnyGenerating, isTrialExpired
               {isGenerating ? 'Generating ATS resume…' : isAnyGenerating ? 'A resume is being generated, please wait' : atsUrl ? 'View ATS Resume' : isTrialExpired ? 'Trial ended — upgrade to generate ATS resumes' : 'Generate ATS Resume'}
             </TooltipContent>
           </Tooltip>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={() => onAction(match.id, 'saved')}
-            className="flex-1 sm:flex-none"
-          >
-            <Bookmark size={12} />
-            Save
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            disabled={isPending}
-            onClick={() => onAction(match.id, 'applied')}
-            className="flex-1 sm:flex-none"
-          >
-            <Send size={12} />
-            Apply
-          </Button>
-          <Tooltip>
-            <TooltipTrigger render={<span />}>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                disabled={isPending}
-                onClick={() => onAction(match.id, 'dismissed')}
-                className="hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
-              >
-                <X size={13} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Dismiss this job</TooltipContent>
-          </Tooltip>
+          {currentStatus !== 'new' && (
+            <Tooltip>
+              <TooltipTrigger render={<span />}>
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  disabled={isPending}
+                  onClick={() => onAction(match.id, 'new')}
+                >
+                  <RotateCcw size={13} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Restore to new</TooltipContent>
+            </Tooltip>
+          )}
+          {currentStatus !== 'dismissed' && (
+            <>
+              {currentStatus !== 'saved' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => onAction(match.id, 'saved')}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Bookmark size={12} />
+                  Save
+                </Button>
+              )}
+              {currentStatus !== 'applied' && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => onAction(match.id, 'applied')}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Send size={12} />
+                  Apply
+                </Button>
+              )}
+              <Tooltip>
+                <TooltipTrigger render={<span />}>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    disabled={isPending}
+                    onClick={() => onAction(match.id, 'dismissed')}
+                    className="hover:border-destructive/30 hover:bg-destructive/5 hover:text-destructive"
+                  >
+                    <X size={13} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Dismiss this job</TooltipContent>
+              </Tooltip>
+            </>
+          )}
         </div>
       </div>
 
@@ -547,6 +571,7 @@ function Dashboard() {
               <motion.div key={match.id} transition={{ delay: i * 0.04 }}>
                 <MatchCard
                   match={match}
+                  currentStatus={activeTab}
                   onAction={(id, status) => updateStatus({ id, status })}
                   isPending={isMutating && isEqual(variables?.id, match.id)}
                   isAnyGenerating={!isEqual(generatingMatchId, null) && !isEqual(generatingMatchId, match.id)}
