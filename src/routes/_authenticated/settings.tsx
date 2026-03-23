@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { useClerk } from '@clerk/clerk-react'
 import axios from 'axios'
 import { isEqual, map } from 'lodash'
-import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain, BarChart2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
@@ -26,6 +27,37 @@ interface ParsedData {
   seniority: 'junior' | 'mid' | 'senior'
   years_exp: number
   summary: string
+}
+
+interface UsageData {
+  used: number
+  limit: number
+  remaining: number
+}
+
+/* ─── Usage bar ──────────────────────────────────────────────────────────── */
+
+function UsageBar({ label, data }: { label: string; data: UsageData | undefined }) {
+  if (!data) return null
+  const pct = data.limit > 0 ? Math.round((data.used / data.limit) * 100) : 0
+  const depleted = data.remaining === 0
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-foreground">{label}</span>
+        <span className={depleted ? 'font-semibold text-destructive' : 'text-muted-foreground'}>
+          {data.remaining} of {data.limit} remaining today
+        </span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full rounded-full transition-all ${depleted ? 'bg-destructive' : 'bg-primary'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
 }
 
 /* ─── Plan badge ─────────────────────────────────────────────────────────── */
@@ -218,6 +250,16 @@ function Settings() {
   const [replacingResume, setReplacingResume] = useState(false)
   const [viewingResume, setViewingResume] = useState(false)
 
+  const { data: matchAtsUsage } = useQuery({
+    queryKey: ['match-ats-usage'],
+    queryFn: () => everApplyApi<UsageData>('/matches/ats-usage', getToken),
+  })
+
+  const { data: targetedUsage } = useQuery({
+    queryKey: ['targeted-resume-usage'],
+    queryFn: () => everApplyApi<UsageData>('/resumes/targeted/usage', getToken),
+  })
+
   return (
     <>
     <Container title="Settings" description="Manage your resume and account.">
@@ -348,6 +390,31 @@ function Settings() {
           )
         })()}
 
+        {/* Usage */}
+        <Section
+          icon={<BarChart2 size={14} />}
+          title="Daily usage"
+          description="How many AI-generated resumes you've used today."
+        >
+          <div className="flex flex-col gap-5">
+            <UsageBar label="Job Match Resumes" data={matchAtsUsage} />
+            <UsageBar label="Targeted Resumes" data={targetedUsage} />
+
+            {!user.is_paid && !user.is_whitelisted && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3.5">
+                <p className="text-xs font-semibold text-primary">Upgrade to Pro</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Get 15 Job Match Resumes and 10 Targeted Resumes per day. Limits reset daily at midnight Mountain Time.
+                </p>
+              </div>
+            )}
+
+            {(user.is_paid || user.is_whitelisted) && (
+              <p className="text-xs text-muted-foreground">Limits reset daily at midnight Mountain Time.</p>
+            )}
+          </div>
+        </Section>
+
         {/* Account */}
         <Section
           icon={<User size={14} />}
@@ -368,6 +435,16 @@ function Settings() {
                   trialExpired={user.trial_expired}
                 />
               </div>
+              {user.trial_expires_at && (
+                <div className="flex items-center justify-between px-4 py-3.5">
+                  <span className="text-xs text-muted-foreground">
+                    {user.is_paid ? 'Plan expires' : 'Trial expires'}
+                  </span>
+                  <span className="text-sm font-medium text-foreground">
+                    {format(parseISO(user.trial_expires_at), 'MMM d, yyyy')}
+                  </span>
+                </div>
+              )}
             </div>
 
             <Button

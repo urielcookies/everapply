@@ -10,6 +10,7 @@ export interface User {
   is_whitelisted: boolean
   is_paid: boolean
   trial_expired: boolean
+  trial_expires_at: string | null
   parsed_data: Record<string, unknown> | null
 }
 
