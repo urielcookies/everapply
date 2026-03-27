@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, RotateCcw } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, RotateCcw, SlidersHorizontal, LayoutList, Columns2, Grid3x3 } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import PdfViewerModal from '#/components/PdfViewerModal'
@@ -15,6 +15,7 @@ import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
 import { Button } from '#/components/ui/button'
+import { Slider } from '#/components/ui/slider'
 import Container from '#/components/Container'
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
@@ -257,13 +258,29 @@ interface MatchCardProps {
   isAnyGenerating: boolean
   isTrialExpired: boolean
   onGeneratingChange: (id: string | null) => void
+  reasonExpanded: boolean
+  onReasonExpandedChange: (expanded: boolean) => void
 }
 
-function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange }: MatchCardProps) {
+function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange, reasonExpanded, onReasonExpandedChange }: MatchCardProps) {
   const { getToken } = useAuth()
   const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
   const [modalOpen, setModalOpen] = useState(false)
   const [descriptionOpen, setDescriptionOpen] = useState(false)
+  const [reasonTruncated, setReasonTruncated] = useState(false)
+  const reasonRef = useRef<HTMLParagraphElement>(null)
+
+  useLayoutEffect(() => {
+    const el = reasonRef.current
+    if (!el) return
+    const clampedHeight = el.clientHeight
+    el.style.setProperty('-webkit-line-clamp', 'unset')
+    el.style.overflow = 'visible'
+    const naturalHeight = el.scrollHeight
+    el.style.removeProperty('-webkit-line-clamp')
+    el.style.overflow = ''
+    setReasonTruncated(naturalHeight > clampedHeight)
+  }, [])
 
   const { mutate: generateAtsResume, isPending: isGenerating } = useMutation({
     mutationFn: () =>
@@ -318,7 +335,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="group relative flex flex-col gap-5 rounded-xl border border-border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="@container group relative flex h-full flex-col gap-5 rounded-xl border border-border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
       style={scoreBorderStyle(match.score)}
     >
       {/* Header */}
@@ -351,12 +368,22 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
       </div>
 
       {/* Reason */}
-      <p className="border-l-2 border-border pl-3 text-sm leading-relaxed text-muted-foreground line-clamp-2">
-        {match.reason}
-      </p>
+      <button
+        onClick={() => (reasonTruncated || reasonExpanded) && onReasonExpandedChange(!reasonExpanded)}
+        className="group/reason border-l-2 border-border pl-3 text-left"
+      >
+        <p ref={reasonRef} className={`text-sm leading-relaxed text-muted-foreground transition-all ${reasonExpanded ? '' : 'line-clamp-2'}`}>
+          {match.reason}
+        </p>
+        {(reasonTruncated || reasonExpanded) && (
+          <span className="mt-1 block text-[0.625rem] font-medium text-muted-foreground/50 transition-colors group-hover/reason:text-muted-foreground">
+            {reasonExpanded ? 'Show less' : 'Read more'}
+          </span>
+        )}
+      </button>
 
       {/* Footer */}
-      <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-auto flex flex-col gap-3 border-t border-border pt-4 @lg:flex-row @lg:items-center @lg:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground whitespace-nowrap">{relativeTime(match.job.posted_at)}</span>
           <span className="text-muted-foreground/40">·</span>
@@ -382,7 +409,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
           )}
         </div>
 
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+        <div className="flex w-full items-center gap-2 @lg:w-auto">
           <Tooltip>
             <TooltipTrigger render={<span className={isAnyGenerating ? 'cursor-not-allowed' : ''} />}>
               <Button
@@ -428,7 +455,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
                   size="sm"
                   disabled={isPending}
                   onClick={() => onAction(match.id, 'saved')}
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 @lg:flex-none"
                 >
                   <Bookmark size={12} />
                   Save
@@ -440,7 +467,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
                   size="sm"
                   disabled={isPending}
                   onClick={() => onAction(match.id, 'applied')}
-                  className="flex-1 sm:flex-none"
+                  className="flex-1 @lg:flex-none"
                 >
                   <Send size={12} />
                   Mark Applied
@@ -490,11 +517,15 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
 }
 
 function Dashboard() {
-  const { user } = useUserStore()
+  const { user, fetchUser } = useUserStore()
   const { getToken } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<MatchStatus>('new')
+  const [columns, setColumns] = useState<1 | 2 | 3>(1)
+  const [isXl, setIsXl] = useState(() => window.matchMedia('(min-width: 1280px)').matches)
+  const [reasonExpanded, setReasonExpanded] = useState(false)
+  const [minScore, setMinScore] = useState<number>((user.preferences?.min_score as number) ?? 70)
   const [generatingMatchId, setGeneratingMatchId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -502,6 +533,20 @@ function Dashboard() {
       navigate({ to: '/onboarding' })
     }
   }, [user.resume_url])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1280px)')
+    const handler = (e: MediaQueryListEvent) => setIsXl(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    const prefScore = user.preferences?.min_score as number | undefined
+    if (typeof prefScore === 'number') setMinScore(prefScore)
+  }, [user.preferences])
+
+  const effectiveColumns = columns === 3 && !isXl ? 2 : columns
 
   const { data: matches, isLoading, isError, error } = useQuery({
     queryKey: ['matches', activeTab],
@@ -526,6 +571,24 @@ function Dashboard() {
     },
   })
 
+  const { mutate: saveMinScore } = useMutation({
+    mutationFn: (score: number) =>
+      everApplyApi('/users/preferences', getToken, {
+        method: 'PUT',
+        data: { ...(user.preferences ?? {}), min_score: score },
+      }),
+    onSuccess: () => fetchUser(getToken),
+    onError: () => toast.error('Failed to save score preference'),
+  })
+
+  const filteredMatches = filter(matches, (m) => m.score >= minScore)
+
+  const gridClass: Record<1 | 2 | 3, string> = {
+    1: 'flex flex-col gap-3',
+    2: 'grid grid-cols-1 gap-3 lg:grid-cols-2',
+    3: 'grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3',
+  }
+
   return (
     <Container
       title="Job Matches"
@@ -544,16 +607,64 @@ function Dashboard() {
             {tab.label}
             {isEqual(activeTab, tab.value) && !isEmpty(matches) && (
               <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground">
-                {matches!.length}
+                {minScore > 0 ? `${filteredMatches.length}/${matches!.length}` : matches!.length}
               </span>
             )}
           </Button>
         ))}
       </div>
 
+      {/* Score filter */}
+      {!isLoading && !isError && !isEmpty(matches) && (
+        <div className="mb-5 flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
+          <SlidersHorizontal size={14} className="shrink-0 text-muted-foreground" />
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Min. match score</span>
+              <span className="font-mono text-xs font-semibold text-foreground">{minScore}</span>
+            </div>
+            <Slider
+              value={[minScore]}
+              min={0}
+              max={100}
+              step={5}
+              onValueChange={(val) => setMinScore(typeof val === 'number' ? val : val[0])}
+              onValueCommitted={(val) => saveMinScore(typeof val === 'number' ? val : val[0])}
+            />
+          </div>
+          {minScore > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setMinScore(0); saveMinScore(0) }}
+              className="shrink-0 text-xs text-muted-foreground"
+            >
+              Reset
+            </Button>
+          )}
+          <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-3 lg:flex">
+            {([
+              { col: 1 as const, icon: <LayoutList size={14} />, requiresXl: false },
+              { col: 2 as const, icon: <Columns2 size={14} />, requiresXl: false },
+              { col: 3 as const, icon: <Grid3x3 size={14} />, requiresXl: true },
+            ]).filter(({ requiresXl }) => !requiresXl || isXl).map(({ col, icon }) => (
+              <Button
+                key={col}
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setColumns(col)}
+                className={effectiveColumns === col ? 'bg-muted text-foreground' : 'text-muted-foreground'}
+              >
+                {icon}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {isLoading ? (
-        <div className="flex flex-col gap-3">
+        <div className={gridClass[columns]}>
           {times(3, (i) => (
             <SkeletonCard key={i} />
           ))}
@@ -564,11 +675,25 @@ function Dashboard() {
         <TrialExpiredState />
       ) : isEmpty(matches) ? (
         <EmptyState status={activeTab} />
+      ) : isEmpty(filteredMatches) ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center gap-4 py-24 text-center"
+        >
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-muted">
+            <SlidersHorizontal size={24} className="text-muted-foreground" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-semibold text-foreground">No matches above {minScore}</p>
+            <p className="text-xs text-muted-foreground">Lower the score filter to see more results.</p>
+          </div>
+        </motion.div>
       ) : (
-        <motion.div layout className="flex flex-col gap-3">
+        <motion.div layout className={gridClass[columns]}>
           <AnimatePresence mode="popLayout">
-            {map(filter(matches, (m) => !isMutating || !isEqual(m.id, variables?.id)), (match, i) => (
-              <motion.div key={match.id} transition={{ delay: i * 0.04 }}>
+            {map(filter(filteredMatches, (m) => !isMutating || !isEqual(m.id, variables?.id)), (match, i) => (
+              <motion.div key={match.id} transition={{ delay: i * 0.04 }} className="h-full">
                 <MatchCard
                   match={match}
                   currentStatus={activeTab}
@@ -577,6 +702,8 @@ function Dashboard() {
                   isAnyGenerating={!isEqual(generatingMatchId, null) && !isEqual(generatingMatchId, match.id)}
                   isTrialExpired={user.trial_expired}
                   onGeneratingChange={setGeneratingMatchId}
+                  reasonExpanded={reasonExpanded}
+                  onReasonExpandedChange={setReasonExpanded}
                 />
               </motion.div>
             ))}

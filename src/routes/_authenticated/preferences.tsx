@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { z } from 'zod'
 import { isEqual } from 'lodash'
 import { useAuth } from '@clerk/clerk-react'
-import { MapPin, DollarSign, Target, ShieldAlert, Wifi, Loader2 } from 'lucide-react'
+import { MapPin, DollarSign, Target, ShieldAlert, Wifi } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
@@ -78,7 +78,7 @@ function Preferences() {
   const { user, fetchUser } = useUserStore()
   const { getToken } = useAuth()
 
-  const { mutateAsync: savePreferences, isPending } = useMutation({
+  const { mutateAsync: savePreferences } = useMutation({
     mutationFn: (payload: Preferences) =>
       everApplyApi('/users/preferences', getToken, {
         method: 'PUT',
@@ -111,18 +111,14 @@ function Preferences() {
     },
   })
 
+  const triggerSave = () => form.handleSubmit()
+
   return (
     <Container
       title="Preferences"
       description="Control how EverApply finds and scores jobs for you."
     >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          form.handleSubmit()
-        }}
-        className="flex flex-col gap-8"
-      >
+      <div className="flex flex-col gap-8">
         {/* Work Type */}
         <Section
           icon={<Wifi size={14} />}
@@ -136,7 +132,7 @@ function Preferences() {
                   value={[field.state.value]}
                   onValueChange={(val: string[]) => {
                     const next = val.find((v) => v !== field.state.value)
-                    if (next) field.handleChange(next as RemoteType)
+                    if (next) { field.handleChange(next as RemoteType); triggerSave() }
                   }}
                   className="justify-start gap-2"
                 >
@@ -171,7 +167,7 @@ function Preferences() {
                   placeholder="e.g. New York, NY"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
+                  onBlur={() => { field.handleBlur(); triggerSave() }}
                 />
               </div>
             )}
@@ -192,7 +188,7 @@ function Preferences() {
                             key={r}
                             variant="outline"
                             size="sm"
-                            onClick={() => field.handleChange(r)}
+                            onClick={() => { field.handleChange(r); triggerSave() }}
                             className={isEqual(field.state.value, r) ? 'border-primary bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary' : ''}
                           >
                             {r} mi
@@ -234,6 +230,7 @@ function Preferences() {
                           e.target.value ? Number(e.target.value) : undefined,
                         )
                       }
+                      onBlur={triggerSave}
                     />
                   </div>
                 </div>
@@ -260,6 +257,7 @@ function Preferences() {
                           e.target.value ? Number(e.target.value) : undefined,
                         )
                       }
+                      onBlur={triggerSave}
                     />
                   </div>
                 </div>
@@ -297,6 +295,7 @@ function Preferences() {
                   step={5}
                   value={[field.state.value]}
                   onValueChange={(val) => field.handleChange(typeof val === 'number' ? val : val[0])}
+                  onValueCommitted={triggerSave}
                 />
                 <div className="flex justify-between text-[0.625rem] text-muted-foreground/60">
                   <span>Show all</span>
@@ -328,21 +327,14 @@ function Preferences() {
                 </div>
                 <Switch
                   checked={field.state.value}
-                  onCheckedChange={(val) => field.handleChange(val)}
+                  onCheckedChange={(val) => { field.handleChange(val); triggerSave() }}
                 />
               </div>
             )}
           </form.Field>
         </Section>
 
-        {/* Save */}
-        <div className="flex items-center justify-end gap-3 border-t border-border pt-6">
-          <Button type="submit" disabled={isPending} className="min-w-35 gap-2">
-            {isPending && <Loader2 size={14} className="animate-spin" />}
-            {isPending ? 'Saving...' : 'Save preferences'}
-          </Button>
-        </div>
-      </form>
+      </div>
     </Container>
   )
 }
