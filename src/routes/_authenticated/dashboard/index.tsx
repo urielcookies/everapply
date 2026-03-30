@@ -274,9 +274,11 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
     const el = reasonRef.current
     if (!el) return
     const clampedHeight = el.clientHeight
+    el.style.display = 'block'
     el.style.setProperty('-webkit-line-clamp', 'unset')
     el.style.overflow = 'visible'
     const naturalHeight = el.scrollHeight
+    el.style.display = ''
     el.style.removeProperty('-webkit-line-clamp')
     el.style.overflow = ''
     setReasonTruncated(naturalHeight > clampedHeight)
