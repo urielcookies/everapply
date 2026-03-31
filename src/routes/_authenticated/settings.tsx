@@ -257,8 +257,12 @@ function Settings() {
   const [draftSkills, setDraftSkills] = useState<string[]>([])
   const [draftSeniority, setDraftSeniority] = useState<'junior' | 'mid' | 'senior'>('mid')
   const [draftYearsExp, setDraftYearsExp] = useState<number>(0)
+  const [draftTitles, setDraftTitles] = useState<string[]>([])
+  const [draftSummary, setDraftSummary] = useState('')
   const [skillInput, setSkillInput] = useState('')
+  const [titleInput, setTitleInput] = useState('')
   const skillInputRef = useRef<HTMLInputElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   const { data: matchAtsUsage } = useQuery({
     queryKey: ['match-ats-usage'],
@@ -271,7 +275,7 @@ function Settings() {
   })
 
   const { mutate: updateParsedData, isPending: isSavingInsights } = useMutation({
-    mutationFn: (data: { skills?: string[]; seniority?: string; years_exp?: number }) =>
+    mutationFn: (data: { skills?: string[]; seniority?: string; years_exp?: number; titles?: string[]; summary?: string }) =>
       everApplyApi('/users/me/parsed-data', getToken, { method: 'PATCH', data }),
     onSuccess: async () => {
       await fetchUser(getToken)
@@ -285,7 +289,10 @@ function Settings() {
     setDraftSkills([...parsed.skills])
     setDraftSeniority(parsed.seniority)
     setDraftYearsExp(parsed.years_exp)
+    setDraftTitles([...parsed.titles])
+    setDraftSummary(parsed.summary)
     setSkillInput('')
+    setTitleInput('')
     setIsEditingInsights(true)
   }
 
@@ -300,6 +307,19 @@ function Settings() {
 
   function removeSkill(skill: string) {
     setDraftSkills(draftSkills.filter((s) => s !== skill))
+  }
+
+  function addTitle() {
+    const trimmed = titleInput.trim()
+    if (trimmed && !draftTitles.includes(trimmed)) {
+      setDraftTitles([...draftTitles, trimmed])
+    }
+    setTitleInput('')
+    titleInputRef.current?.focus()
+  }
+
+  function removeTitle(title: string) {
+    setDraftTitles(draftTitles.filter((t) => t !== title))
   }
 
   return (
@@ -390,7 +410,7 @@ function Settings() {
                         size="sm"
                         className="gap-1.5"
                         disabled={isSavingInsights}
-                        onClick={() => updateParsedData({ skills: draftSkills, seniority: draftSeniority, years_exp: draftYearsExp })}
+                        onClick={() => updateParsedData({ skills: draftSkills, seniority: draftSeniority, years_exp: draftYearsExp, titles: draftTitles, summary: draftSummary })}
                       >
                         {isSavingInsights ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                         Save
@@ -455,14 +475,52 @@ function Settings() {
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Titles</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {map(parsed.titles, (title) => (
-                      <span
-                        key={title}
-                        className="rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
-                      >
-                        {title}
-                      </span>
-                    ))}
+                    {isEditingInsights ? (
+                      <>
+                        {map(draftTitles, (title) => (
+                          <span
+                            key={title}
+                            className="group inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                          >
+                            {title}
+                            <button
+                              type="button"
+                              onClick={() => removeTitle(title)}
+                              className="ml-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))}
+                        <div className="flex items-center gap-1">
+                          <input
+                            ref={titleInputRef}
+                            type="text"
+                            value={titleInput}
+                            onChange={(e) => setTitleInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTitle() } }}
+                            placeholder="Add title…"
+                            className="h-7 rounded-md border border-dashed border-border bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={addTitle}
+                            className="flex size-7 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      map(parsed.titles, (title) => (
+                        <span
+                          key={title}
+                          className="rounded-md border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground"
+                        >
+                          {title}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -522,7 +580,16 @@ function Settings() {
                 {/* Summary */}
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Summary</span>
-                  <p className="text-sm leading-relaxed text-foreground">{parsed.summary}</p>
+                  {isEditingInsights ? (
+                    <textarea
+                      value={draftSummary}
+                      onChange={(e) => setDraftSummary(e.target.value)}
+                      rows={4}
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                    />
+                  ) : (
+                    <p className="text-sm leading-relaxed text-foreground">{parsed.summary}</p>
+                  )}
                 </div>
 
               </div>
