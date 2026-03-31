@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, Navigate } from '@tanstack/react-router'
 import { useAuth } from '@clerk/clerk-react'
 import { useEffect } from 'react'
 import { useUserStore } from '#/stores/useUserStore'
@@ -40,7 +40,7 @@ function AuthenticatedLayout() {
   }
 
   if (!isSignedIn) {
-    throw redirect({ to: '/' })
+    return <Navigate to="/" />
   }
 
   return (
