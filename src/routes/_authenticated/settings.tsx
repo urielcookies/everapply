@@ -1,12 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { useClerk } from '@clerk/clerk-react'
 import axios from 'axios'
 import { isEqual, map } from 'lodash'
 import { format, parseISO } from 'date-fns'
-import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain, BarChart2 } from 'lucide-react'
+import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain, BarChart2, Pencil, Check, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
@@ -253,6 +253,12 @@ function Settings() {
   const { openUserProfile } = useClerk()
   const [replacingResume, setReplacingResume] = useState(false)
   const [viewingResume, setViewingResume] = useState(false)
+  const [isEditingInsights, setIsEditingInsights] = useState(false)
+  const [draftSkills, setDraftSkills] = useState<string[]>([])
+  const [draftSeniority, setDraftSeniority] = useState<'junior' | 'mid' | 'senior'>('mid')
+  const [draftYearsExp, setDraftYearsExp] = useState<number>(0)
+  const [skillInput, setSkillInput] = useState('')
+  const skillInputRef = useRef<HTMLInputElement>(null)
 
   const { data: matchAtsUsage } = useQuery({
     queryKey: ['match-ats-usage'],
@@ -263,6 +269,38 @@ function Settings() {
     queryKey: ['targeted-resume-usage'],
     queryFn: () => everApplyApi<UsageData>('/resumes/targeted/usage', getToken),
   })
+
+  const { mutate: updateParsedData, isPending: isSavingInsights } = useMutation({
+    mutationFn: (data: { skills?: string[]; seniority?: string; years_exp?: number }) =>
+      everApplyApi('/users/me/parsed-data', getToken, { method: 'PATCH', data }),
+    onSuccess: async () => {
+      await fetchUser(getToken)
+      setIsEditingInsights(false)
+      toast.success('Resume insights updated')
+    },
+    onError: () => toast.error('Failed to update insights'),
+  })
+
+  function startEditingInsights(parsed: ParsedData) {
+    setDraftSkills([...parsed.skills])
+    setDraftSeniority(parsed.seniority)
+    setDraftYearsExp(parsed.years_exp)
+    setSkillInput('')
+    setIsEditingInsights(true)
+  }
+
+  function addSkill() {
+    const trimmed = skillInput.trim()
+    if (trimmed && !draftSkills.includes(trimmed)) {
+      setDraftSkills([...draftSkills, trimmed])
+    }
+    setSkillInput('')
+    skillInputRef.current?.focus()
+  }
+
+  function removeSkill(skill: string) {
+    setDraftSkills(draftSkills.filter((s) => s !== skill))
+  }
 
   return (
     <>
@@ -337,6 +375,40 @@ function Settings() {
             >
               <div className="flex flex-col gap-4">
 
+                {/* Edit / Save / Cancel */}
+                <div className="flex justify-end gap-2">
+                  {isEditingInsights ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingInsights(false)}
+                        className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={isSavingInsights}
+                        onClick={() => updateParsedData({ skills: draftSkills, seniority: draftSeniority, years_exp: draftYearsExp })}
+                      >
+                        {isSavingInsights ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                        Save
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => startEditingInsights(parsed)}
+                    >
+                      <Pencil size={12} />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+
                 {/* Name / Seniority / Experience */}
                 <div className="rounded-xl border border-border bg-muted/30 divide-y divide-border">
                   <div className="flex items-center justify-between px-4 py-3.5">
@@ -345,11 +417,37 @@ function Settings() {
                   </div>
                   <div className="flex items-center justify-between px-4 py-3.5">
                     <span className="text-xs text-muted-foreground">Seniority</span>
-                    <span className="text-sm font-medium capitalize text-foreground">{parsed.seniority}</span>
+                    {isEditingInsights ? (
+                      <select
+                        value={draftSeniority}
+                        onChange={(e) => setDraftSeniority(e.target.value as 'junior' | 'mid' | 'senior')}
+                        className="rounded-md border border-border bg-background px-2.5 py-1 text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="junior">Junior</option>
+                        <option value="mid">Mid</option>
+                        <option value="senior">Senior</option>
+                      </select>
+                    ) : (
+                      <span className="text-sm font-medium capitalize text-foreground">{parsed.seniority}</span>
+                    )}
                   </div>
                   <div className="flex items-center justify-between px-4 py-3.5">
                     <span className="text-xs text-muted-foreground">Experience</span>
-                    <span className="text-sm font-medium text-foreground">{parsed.years_exp} years</span>
+                    {isEditingInsights ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          min={0}
+                          max={50}
+                          value={draftYearsExp}
+                          onChange={(e) => setDraftYearsExp(Number(e.target.value))}
+                          className="w-16 rounded-md border border-border bg-background px-2.5 py-1 text-right text-sm font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        <span className="text-sm text-muted-foreground">years</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm font-medium text-foreground">{parsed.years_exp} years</span>
+                    )}
                   </div>
                 </div>
 
@@ -372,14 +470,52 @@ function Settings() {
                 <div className="flex flex-col gap-2">
                   <span className="text-xs font-medium text-muted-foreground">Skills</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {map(parsed.skills, (skill) => (
-                      <span
-                        key={skill}
-                        className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    {isEditingInsights ? (
+                      <>
+                        {map(draftSkills, (skill) => (
+                          <span
+                            key={skill}
+                            className="group inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="ml-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        ))}
+                        <div className="flex items-center gap-1">
+                          <input
+                            ref={skillInputRef}
+                            type="text"
+                            value={skillInput}
+                            onChange={(e) => setSkillInput(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
+                            placeholder="Add skill…"
+                            className="h-7 rounded-md border border-dashed border-border bg-transparent px-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={addSkill}
+                            className="flex size-7 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                          >
+                            <Plus size={12} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      map(parsed.skills, (skill) => (
+                        <span
+                          key={skill}
+                          className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary"
+                        >
+                          {skill}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
 
