@@ -13,6 +13,7 @@ import { everApplyApi } from '#/lib/api'
 import Container from '#/components/Container'
 import PdfViewerModal from '#/components/PdfViewerModal'
 import { Button } from '#/components/ui/button'
+import { Skeleton } from '#/components/ui/skeleton'
 
 export const Route = createFileRoute('/_authenticated/settings')({
   component: Settings,
@@ -245,10 +246,97 @@ function ResumeUploader({ onSuccess }: { onSuccess: () => void }) {
   )
 }
 
+/* ─── Skeleton ───────────────────────────────────────────────────────────── */
+
+function SettingsSkeleton() {
+  return (
+    <main className="mx-auto max-w-5xl px-4 py-12">
+      <div className="mb-8">
+        <Skeleton className="h-8 w-36" />
+        <Skeleton className="mt-2 h-4 w-56" />
+      </div>
+      <div className="flex flex-col gap-8">
+
+        {/* Resume */}
+        <div className="grid grid-cols-1 gap-6 border-b border-border pb-8 sm:grid-cols-[1fr_1.6fr]">
+          <div className="flex flex-col gap-2 pl-9">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+          <Skeleton className="h-16 rounded-xl" />
+        </div>
+
+        {/* Resume insights */}
+        <div className="grid grid-cols-1 gap-6 border-b border-border pb-8 sm:grid-cols-[1fr_1.6fr]">
+          <div className="flex flex-col gap-2 pl-9">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-32 rounded-xl" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-10" />
+              <Skeleton className="h-6 w-40 rounded-md" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-10" />
+              <div className="flex flex-wrap gap-1.5">
+                {[60, 80, 52, 68, 90, 56, 64, 44].map((w, i) => (
+                  <Skeleton key={i} className="h-6 rounded-md" style={{ width: w }} />
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-16 rounded-md" />
+            </div>
+          </div>
+        </div>
+
+        {/* Daily usage */}
+        <div className="grid grid-cols-1 gap-6 border-b border-border pb-8 sm:grid-cols-[1fr_1.6fr]">
+          <div className="flex flex-col gap-2 pl-9">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+          <div className="flex flex-col gap-5">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex flex-col gap-1.5">
+                <div className="flex justify-between">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Account */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_1.6fr]">
+          <div className="flex flex-col gap-2 pl-9">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
+          </div>
+          <div className="flex flex-col gap-5">
+            <Skeleton className="h-24 rounded-xl" />
+            <Skeleton className="h-9 w-36 rounded-md" />
+          </div>
+        </div>
+
+      </div>
+    </main>
+  )
+}
+
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
 function Settings() {
-  const { user, fetchUser } = useUserStore()
+  const { user, fetchUser, isFetched, isLoading } = useUserStore()
   const { getToken } = useAuth()
   const { openUserProfile } = useClerk()
   const [replacingResume, setReplacingResume] = useState(false)
@@ -321,6 +409,8 @@ function Settings() {
   function removeTitle(title: string) {
     setDraftTitles(draftTitles.filter((t) => t !== title))
   }
+
+  if (isLoading || !isFetched) return <SettingsSkeleton />
 
   return (
     <>
