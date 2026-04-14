@@ -365,6 +365,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6, scale: 0.98 }}
       transition={{ duration: 0.2 }}
+      data-visited-card={isVisited ? 'true' : undefined}
       className={`@container group relative flex h-full flex-col gap-5 rounded-xl border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${isVisited ? 'border-indigo-400/60' : 'border-border'}`}
       style={scoreBorderStyle(match.score)}
     >
@@ -628,7 +629,11 @@ function Dashboard() {
 
   useEffect(() => {
     if (!lastVisitedJobId) return
-    const handler = () => setLastVisitedJobId(null)
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('[data-visited-card="true"]')) {
+        setLastVisitedJobId(null)
+      }
+    }
     const timer = setTimeout(() => document.addEventListener('click', handler), 0)
     return () => { clearTimeout(timer); document.removeEventListener('click', handler) }
   }, [lastVisitedJobId])
