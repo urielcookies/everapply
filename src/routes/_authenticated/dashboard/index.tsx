@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, RotateCcw, SlidersHorizontal, LayoutList, Columns2, Grid3x3 } from 'lucide-react'
+import { Bookmark, Send, X, ExternalLink, Briefcase, AlertTriangle, Sparkles, FileText, Loader2, RotateCcw, SlidersHorizontal, LayoutList, Columns2, Grid3x3, DollarSign } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '#/components/ui/tooltip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '#/components/ui/dialog'
 import PdfViewerModal from '#/components/PdfViewerModal'
@@ -16,6 +16,7 @@ import { everApplyApi } from '#/lib/api'
 import { Skeleton } from '#/components/ui/skeleton'
 import { Button } from '#/components/ui/button'
 import { Slider } from '#/components/ui/slider'
+import { Switch } from '#/components/ui/switch'
 import Container from '#/components/Container'
 
 export const Route = createFileRoute('/_authenticated/dashboard/')({
@@ -34,6 +35,8 @@ interface Job {
   source_url: string
   posted_at: string
   description: string | null
+  salary_min: number | null
+  salary_max: number | null
 }
 
 interface Match {
@@ -73,6 +76,29 @@ function remoteStyle(type: RemoteType): string {
 
 function relativeTime(dateStr: string) {
   return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
+}
+
+const SALARY_MAX = 300000
+
+function formatSalary(val: number): string {
+  if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
+  return `$${Math.round(val / 1000)}k`
+}
+
+function salaryRangeLabel(range: [number, number]): string {
+  const [min, max] = range
+  if (min === 0 && max === SALARY_MAX) return 'Any'
+  if (min === 0) return `Up to ${formatSalary(max)}`
+  if (max === SALARY_MAX) return `${formatSalary(min)}+`
+  return `${formatSalary(min)} – ${formatSalary(max)}`
+}
+
+function jobSalaryText(job: Job): string {
+  if (job.salary_min == null && job.salary_max == null) return 'Salary N/A'
+  if (job.salary_min != null && job.salary_max != null)
+    return `${formatSalary(job.salary_min)} – ${formatSalary(job.salary_max)}`
+  if (job.salary_min != null) return `${formatSalary(job.salary_min)}+`
+  return `Up to ${formatSalary(job.salary_max!)}`
 }
 
 function RemoteBadge({ type }: { type: RemoteType }) {
@@ -364,6 +390,10 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
             <span className="text-border">·</span>
             <span className="text-sm text-muted-foreground">{match.job.location}</span>
             <RemoteBadge type={match.job.remote_type} />
+            <span className="text-border">·</span>
+            <span className={`text-xs ${match.job.salary_min == null && match.job.salary_max == null ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
+              {jobSalaryText(match.job)}
+            </span>
           </div>
         </div>
         <ScoreBlock score={match.score} />
@@ -519,7 +549,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
 }
 
 function Dashboard() {
-  const { user, fetchUser } = useUserStore()
+  const { user } = useUserStore()
   const { getToken } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -527,7 +557,9 @@ function Dashboard() {
   const [columns, setColumns] = useState<1 | 2 | 3>(1)
   const [isXl, setIsXl] = useState(() => window.matchMedia('(min-width: 1280px)').matches)
   const [reasonExpanded, setReasonExpanded] = useState(false)
-  const [minScore, setMinScore] = useState<number>((user.preferences?.min_score as number) ?? 70)
+  const [minScore, setMinScore] = useState<number>(70)
+  const [salaryEnabled, setSalaryEnabled] = useState<boolean>(false)
+  const [salaryRange, setSalaryRange] = useState<[number, number]>([0, SALARY_MAX])
   const [generatingMatchId, setGeneratingMatchId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -543,17 +575,12 @@ function Dashboard() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  useEffect(() => {
-    const prefScore = user.preferences?.min_score as number | undefined
-    if (typeof prefScore === 'number') setMinScore(prefScore)
-  }, [user.preferences])
-
   const effectiveColumns = columns === 3 && !isXl ? 2 : columns
 
   const { data: matches, isLoading, isError, error } = useQuery({
     queryKey: ['matches', activeTab],
     queryFn: () => everApplyApi<Match[]>(`/matches?status=${activeTab}`, getToken),
-    enabled: !!user.resume_url,
+    enabled: Boolean(user.resume_url),
   })
 
   const { mutate: updateStatus, variables, isPending: isMutating } = useMutation({
@@ -573,17 +600,31 @@ function Dashboard() {
     },
   })
 
-  const { mutate: saveMinScore } = useMutation({
-    mutationFn: (score: number) =>
-      everApplyApi('/users/preferences', getToken, {
-        method: 'PUT',
-        data: { ...(user.preferences ?? {}), min_score: score },
-      }),
-    onSuccess: () => fetchUser(getToken),
-    onError: () => toast.error('Failed to save score preference'),
-  })
+  const handleMinScoreChange = (val: number) => {
+    setMinScore(val)
+  }
 
-  const filteredMatches = filter(matches, (m) => m.score >= minScore)
+  const handleSalaryEnabledChange = (enabled: boolean) => {
+    setSalaryEnabled(enabled)
+    if (!enabled) setSalaryRange([0, SALARY_MAX])
+  }
+
+  const handleSalaryRangeChange = (val: [number, number]) => {
+    setSalaryRange(val)
+  }
+
+  const salaryFilterActive = salaryEnabled && (salaryRange[0] > 0 || salaryRange[1] < SALARY_MAX)
+  const hasSalaryData = matches?.some((m) => m.job.salary_min != null || m.job.salary_max != null) ?? false
+
+  const filteredMatches = filter(matches, (m) => {
+    if (m.score < minScore) return false
+    if (salaryFilterActive && (m.job.salary_min != null || m.job.salary_max != null)) {
+      const jobMin = m.job.salary_min ?? 0
+      const jobMax = m.job.salary_max ?? SALARY_MAX
+      if (jobMax < salaryRange[0] || jobMin > salaryRange[1]) return false
+    }
+    return true
+  })
 
   const gridClass: Record<1 | 2 | 3, string> = {
     1: 'flex flex-col gap-3',
@@ -609,57 +650,106 @@ function Dashboard() {
             {tab.label}
             {isEqual(activeTab, tab.value) && !isEmpty(matches) && (
               <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[0.625rem] font-semibold text-muted-foreground">
-                {minScore > 0 ? `${filteredMatches.length}/${matches!.length}` : matches!.length}
+                {(minScore > 0 || salaryFilterActive) ? `${filteredMatches.length}/${matches!.length}` : matches!.length}
               </span>
             )}
           </Button>
         ))}
       </div>
 
-      {/* Score filter */}
+      {/* Filters */}
       {!isLoading && !isError && !isEmpty(matches) && (
-        <div className="mb-5 flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
-          <SlidersHorizontal size={14} className="shrink-0 text-muted-foreground" />
-          <div className="flex flex-1 flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Min. match score</span>
-              <span className="font-mono text-xs font-semibold text-foreground">{minScore}</span>
+        <div className="mb-5 rounded-xl border border-border bg-card">
+          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border">
+            <SlidersHorizontal size={13} className="shrink-0 text-muted-foreground" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filters</span>
+            <div className="ml-auto hidden shrink-0 items-center gap-1 lg:flex">
+              {([
+                { col: 1 as const, icon: <LayoutList size={14} />, requiresXl: false },
+                { col: 2 as const, icon: <Columns2 size={14} />, requiresXl: false },
+                { col: 3 as const, icon: <Grid3x3 size={14} />, requiresXl: true },
+              ]).filter(({ requiresXl }) => !requiresXl || isXl).map(({ col, icon }) => (
+                <Button
+                  key={col}
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setColumns(col)}
+                  className={effectiveColumns === col ? 'bg-muted text-foreground' : 'text-muted-foreground'}
+                >
+                  {icon}
+                </Button>
+              ))}
             </div>
-            <Slider
-              value={[minScore]}
-              min={0}
-              max={100}
-              step={5}
-              onValueChange={(val) => setMinScore(typeof val === 'number' ? val : val[0])}
-              onValueCommitted={(val) => saveMinScore(typeof val === 'number' ? val : val[0])}
-            />
           </div>
-          {minScore > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => { setMinScore(0); saveMinScore(0) }}
-              className="shrink-0 text-xs text-muted-foreground"
-            >
-              Reset
-            </Button>
-          )}
-          <div className="hidden shrink-0 items-center gap-1 border-l border-border pl-3 lg:flex">
-            {([
-              { col: 1 as const, icon: <LayoutList size={14} />, requiresXl: false },
-              { col: 2 as const, icon: <Columns2 size={14} />, requiresXl: false },
-              { col: 3 as const, icon: <Grid3x3 size={14} />, requiresXl: true },
-            ]).filter(({ requiresXl }) => !requiresXl || isXl).map(({ col, icon }) => (
-              <Button
-                key={col}
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setColumns(col)}
-                className={effectiveColumns === col ? 'bg-muted text-foreground' : 'text-muted-foreground'}
-              >
-                {icon}
-              </Button>
-            ))}
+          <div className="flex flex-col divide-y divide-border sm:flex-row sm:divide-x sm:divide-y-0">
+            {/* Match score */}
+            <div className="flex flex-1 items-center gap-3 px-4 py-3">
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">Min. match score</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-semibold text-foreground">{minScore}%</span>
+                    {minScore > 0 && (
+                      <button
+                        onClick={() => handleMinScoreChange(0)}
+                        className="text-[0.625rem] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <Slider
+                  value={[minScore]}
+                  min={0}
+                  max={100}
+                  step={5}
+                  onValueChange={(val) => handleMinScoreChange(typeof val === 'number' ? val : val[0])}
+                />
+              </div>
+            </div>
+            {/* Salary range */}
+            {hasSalaryData && (
+              <div className="flex flex-1 flex-col gap-2 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSalaryEnabledChange(!salaryEnabled)}
+                      className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${salaryEnabled ? 'text-foreground' : 'text-muted-foreground'}`}
+                    >
+                      <DollarSign size={12} />
+                      Salary range
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {salaryEnabled && (
+                      <span className="font-mono text-xs font-semibold text-foreground">{salaryRangeLabel(salaryRange)}</span>
+                    )}
+                    {salaryEnabled && salaryFilterActive && (
+                      <button
+                        onClick={() => handleSalaryRangeChange([0, SALARY_MAX])}
+                        className="text-[0.625rem] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                    <Switch
+                      checked={salaryEnabled}
+                      onCheckedChange={handleSalaryEnabledChange}
+                    />
+                  </div>
+                </div>
+                {salaryEnabled && (
+                  <Slider
+                    value={salaryRange}
+                    min={0}
+                    max={SALARY_MAX}
+                    step={5000}
+                    onValueChange={(val) => handleSalaryRangeChange(val as [number, number])}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -4,12 +4,11 @@ import { useMutation } from '@tanstack/react-query'
 import { z } from 'zod'
 import { isEqual } from 'lodash'
 import { useAuth } from '@clerk/clerk-react'
-import { MapPin, DollarSign, Target, ShieldAlert, Wifi } from 'lucide-react'
+import { MapPin, DollarSign, ShieldAlert, Wifi } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import Container from '#/components/Container'
-import { Slider } from '#/components/ui/slider'
 import { Switch } from '#/components/ui/switch'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
@@ -28,7 +27,6 @@ const preferencesSchema = z.object({
   remote_type: z.enum(['remote', 'hybrid', 'onsite']),
   preferred_location: z.string().optional(),
   radius_miles: z.number().optional(),
-  min_score: z.number().min(0).max(100),
   salary_min: z.number().min(0).optional(),
   salary_max: z.number().min(0).optional(),
   exclude_clearance: z.boolean(),
@@ -41,7 +39,6 @@ function getDefaults(prefs: Record<string, unknown> | null): Preferences {
     remote_type: (prefs?.remote_type as RemoteType) ?? 'remote',
     preferred_location: (prefs?.preferred_location as string) ?? '',
     radius_miles: (prefs?.radius_miles as number) ?? 25,
-    min_score: (prefs?.min_score as number) ?? 70,
     salary_min: (prefs?.salary_min as number) ?? undefined,
     salary_max: (prefs?.salary_max as number) ?? undefined,
     exclude_clearance: (prefs?.exclude_clearance as boolean) ?? false,
@@ -264,46 +261,6 @@ function Preferences() {
               )}
             </form.Field>
           </div>
-        </Section>
-
-        {/* Match Score */}
-        <Section
-          icon={<Target size={14} />}
-          title="Minimum match score"
-          description="Jobs scoring below this threshold won't appear in your feed."
-        >
-          <form.Field name="min_score">
-            {(field) => (
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Filter threshold</span>
-                  <span
-                    className={`score-badge ${
-                      field.state.value >= 80
-                        ? 'score-high'
-                        : field.state.value >= 60
-                          ? 'score-mid'
-                          : 'score-low'
-                    } text-sm! px-3! py-1!`}
-                  >
-                    {field.state.value}%
-                  </span>
-                </div>
-                <Slider
-                  min={0}
-                  max={100}
-                  step={5}
-                  value={[field.state.value]}
-                  onValueChange={(val) => field.handleChange(typeof val === 'number' ? val : val[0])}
-                  onValueCommitted={triggerSave}
-                />
-                <div className="flex justify-between text-[0.625rem] text-muted-foreground/60">
-                  <span>Show all</span>
-                  <span>High quality only</span>
-                </div>
-              </div>
-            )}
-          </form.Field>
         </Section>
 
         {/* Security Clearance */}
