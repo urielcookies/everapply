@@ -286,9 +286,11 @@ interface MatchCardProps {
   onGeneratingChange: (id: string | null) => void
   reasonExpanded: boolean
   onReasonExpandedChange: (expanded: boolean) => void
+  isVisited: boolean
+  onVisit: (jobId: string) => void
 }
 
-function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange, reasonExpanded, onReasonExpandedChange }: MatchCardProps) {
+function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating, isTrialExpired, onGeneratingChange, reasonExpanded, onReasonExpandedChange, isVisited, onVisit }: MatchCardProps) {
   const { getToken } = useAuth()
   const [atsUrl, setAtsUrl] = useState<string | null>(match.ats_resume_url)
   const [modalOpen, setModalOpen] = useState(false)
@@ -363,7 +365,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className="@container group relative flex h-full flex-col gap-5 rounded-xl border border-border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className={`@container group relative flex h-full flex-col gap-5 rounded-xl border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${isVisited ? 'border-primary/30' : 'border-border'}`}
       style={scoreBorderStyle(match.score)}
     >
       {/* Header */}
@@ -374,6 +376,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
             target="_blank"
             rel="noopener noreferrer"
             className="group/title flex items-center gap-1.5"
+            onClick={() => onVisit(match.job.id)}
           >
             <h3 className="line-clamp-2 text-base font-semibold leading-snug text-foreground transition-colors group-hover/title:text-primary sm:truncate sm:line-clamp-none">
               {match.job.title}
@@ -557,6 +560,11 @@ function Dashboard() {
   const [columns, setColumns] = useState<1 | 2 | 3>(1)
   const [isXl, setIsXl] = useState(() => window.matchMedia('(min-width: 1280px)').matches)
   const [reasonExpanded, setReasonExpanded] = useState(false)
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem('dashboard_visited_job_ids')
+    return stored ? new Set(JSON.parse(stored) as string[]) : new Set()
+  })
   const [minScore, setMinScore] = useState<number>(70)
   const [salaryEnabled, setSalaryEnabled] = useState<boolean>(false)
   const [salaryRange, setSalaryRange] = useState<[number, number]>([0, SALARY_MAX])
@@ -583,16 +591,20 @@ function Dashboard() {
     enabled: Boolean(user.resume_url),
   })
 
+  useEffect(() => { setHiddenIds(new Set()) }, [matches])
+
   const { mutate: updateStatus, variables, isPending: isMutating } = useMutation({
     mutationFn: ({ id, status }: { id: string; status: MatchStatus }) =>
       everApplyApi(`/matches/${id}/status`, getToken, {
         method: 'PUT',
         data: { status },
       }),
+    onMutate: ({ id }) => setHiddenIds((prev) => new Set([...prev, id])),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matches'] })
     },
-    onError: (err) => {
+    onError: (err, { id }) => {
+      setHiddenIds((prev) => { const s = new Set(prev); s.delete(id); return s })
       const message = axios.isAxiosError(err)
         ? (err.response?.data?.message ?? err.response?.data?.error ?? err.message)
         : err.message
@@ -611,6 +623,14 @@ function Dashboard() {
 
   const handleSalaryRangeChange = (val: [number, number]) => {
     setSalaryRange(val)
+  }
+
+  const handleVisit = (jobId: string) => {
+    setVisitedIds((prev) => {
+      const next = new Set([...prev, jobId])
+      localStorage.setItem('dashboard_visited_job_ids', JSON.stringify([...next]))
+      return next
+    })
   }
 
   const salaryFilterActive = salaryEnabled && (salaryRange[0] > 0 || salaryRange[1] < SALARY_MAX)
@@ -784,13 +804,15 @@ function Dashboard() {
       ) : (
         <motion.div layout className={gridClass[columns]}>
           <AnimatePresence mode="popLayout">
-            {map(filter(filteredMatches, (m) => !isMutating || !isEqual(m.id, variables?.id)), (match, i) => (
+            {map(filter(filteredMatches, (m) => !hiddenIds.has(m.id)), (match, i) => (
               <motion.div key={match.id} transition={{ delay: i * 0.04 }} className="h-full">
                 <MatchCard
                   match={match}
                   currentStatus={activeTab}
                   onAction={(id, status) => updateStatus({ id, status })}
                   isPending={isMutating && isEqual(variables?.id, match.id)}
+                  isVisited={visitedIds.has(match.job.id)}
+                  onVisit={handleVisit}
                   isAnyGenerating={!isEqual(generatingMatchId, null) && !isEqual(generatingMatchId, match.id)}
                   isTrialExpired={user.trial_expired}
                   onGeneratingChange={setGeneratingMatchId}
