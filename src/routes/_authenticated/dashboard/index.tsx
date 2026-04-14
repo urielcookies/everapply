@@ -618,10 +618,10 @@ function Dashboard() {
 
   const filteredMatches = filter(matches, (m) => {
     if (m.score < minScore) return false
-    if (salaryFilterActive && (m.job.salary_min != null || m.job.salary_max != null)) {
-      const jobMin = m.job.salary_min ?? 0
-      const jobMax = m.job.salary_max ?? SALARY_MAX
-      if (jobMax < salaryRange[0] || jobMin > salaryRange[1]) return false
+    if (salaryFilterActive) {
+      const { salary_min, salary_max } = m.job
+      if (salary_min != null && salary_min > salaryRange[1]) return false
+      if (salary_max != null && salary_max < salaryRange[0]) return false
     }
     return true
   })
