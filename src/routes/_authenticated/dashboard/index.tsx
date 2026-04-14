@@ -365,7 +365,7 @@ function MatchCard({ match, currentStatus, onAction, isPending, isAnyGenerating,
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6, scale: 0.98 }}
       transition={{ duration: 0.2 }}
-      className={`@container group relative flex h-full flex-col gap-5 rounded-xl border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${isVisited ? 'border-primary/30' : 'border-border'}`}
+      className={`@container group relative flex h-full flex-col gap-5 rounded-xl border border-l-[3px] bg-card p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${isVisited ? 'border-indigo-400/60' : 'border-border'}`}
       style={scoreBorderStyle(match.score)}
     >
       {/* Header */}
@@ -561,10 +561,7 @@ function Dashboard() {
   const [isXl, setIsXl] = useState(() => window.matchMedia('(min-width: 1280px)').matches)
   const [reasonExpanded, setReasonExpanded] = useState(false)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
-  const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
-    const stored = localStorage.getItem('dashboard_visited_job_ids')
-    return stored ? new Set(JSON.parse(stored) as string[]) : new Set()
-  })
+  const [lastVisitedJobId, setLastVisitedJobId] = useState<string | null>(null)
   const [minScore, setMinScore] = useState<number>(70)
   const [salaryEnabled, setSalaryEnabled] = useState<boolean>(false)
   const [salaryRange, setSalaryRange] = useState<[number, number]>([0, SALARY_MAX])
@@ -626,12 +623,15 @@ function Dashboard() {
   }
 
   const handleVisit = (jobId: string) => {
-    setVisitedIds((prev) => {
-      const next = new Set([...prev, jobId])
-      localStorage.setItem('dashboard_visited_job_ids', JSON.stringify([...next]))
-      return next
-    })
+    setLastVisitedJobId(jobId)
   }
+
+  useEffect(() => {
+    if (!lastVisitedJobId) return
+    const handler = () => setLastVisitedJobId(null)
+    const timer = setTimeout(() => document.addEventListener('click', handler), 0)
+    return () => { clearTimeout(timer); document.removeEventListener('click', handler) }
+  }, [lastVisitedJobId])
 
   const salaryFilterActive = salaryEnabled && (salaryRange[0] > 0 || salaryRange[1] < SALARY_MAX)
   const hasSalaryData = matches?.some((m) => m.job.salary_min != null || m.job.salary_max != null) ?? false
@@ -811,7 +811,7 @@ function Dashboard() {
                   currentStatus={activeTab}
                   onAction={(id, status) => updateStatus({ id, status })}
                   isPending={isMutating && isEqual(variables?.id, match.id)}
-                  isVisited={visitedIds.has(match.job.id)}
+                  isVisited={lastVisitedJobId === match.job.id}
                   onVisit={handleVisit}
                   isAnyGenerating={!isEqual(generatingMatchId, null) && !isEqual(generatingMatchId, match.id)}
                   isTrialExpired={user.trial_expired}
