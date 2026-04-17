@@ -12,6 +12,7 @@ export interface User {
   trial_expired: boolean
   trial_expires_at: string | null
   parsed_data: Record<string, unknown> | null
+  scraping_enabled: boolean
 }
 
 interface UserStore {

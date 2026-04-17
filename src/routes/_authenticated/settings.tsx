@@ -1,18 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@clerk/clerk-react'
 import { useClerk } from '@clerk/clerk-react'
 import axios from 'axios'
 import { isEqual, map } from 'lodash'
 import { format, parseISO } from 'date-fns'
-import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain, BarChart2, Pencil, Check, Plus } from 'lucide-react'
+import { FileText, Upload, X, Loader2, User, CheckCircle2, ShieldCheck, Clock, Ban, Brain, BarChart2, Pencil, Check, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
 import Container from '#/components/Container'
 import PdfViewerModal from '#/components/PdfViewerModal'
 import { Button } from '#/components/ui/button'
+import { Switch } from '#/components/ui/switch'
 import { Skeleton } from '#/components/ui/skeleton'
 
 export const Route = createFileRoute('/_authenticated/settings')({
@@ -362,6 +363,22 @@ function Settings() {
     queryFn: () => everApplyApi<UsageData>('/resumes/targeted/usage', getToken),
   })
 
+  const [scrapingEnabled, setScrapingEnabled] = useState(true)
+
+  useEffect(() => {
+    if (isFetched) setScrapingEnabled(user.scraping_enabled ?? true)
+  }, [user.scraping_enabled, isFetched])
+
+  const { mutate: toggleScraping, isPending: isTogglingScrap } = useMutation({
+    mutationFn: (enabled: boolean) =>
+      everApplyApi('/users/me', getToken, { method: 'PATCH', data: { scraping_enabled: enabled } }),
+    onMutate: (enabled) => setScrapingEnabled(enabled),
+    onError: (_, enabled) => {
+      setScrapingEnabled(!enabled)
+      toast.error('Failed to update scraping setting')
+    },
+  })
+
   const { mutate: updateParsedData, isPending: isSavingInsights } = useMutation({
     mutationFn: (data: { skills?: string[]; seniority?: string; years_exp?: number; titles?: string[]; summary?: string }) =>
       everApplyApi('/users/me/parsed-data', getToken, { method: 'PATCH', data }),
@@ -709,6 +726,31 @@ function Settings() {
             {(user.is_paid || user.is_whitelisted) && (
               <p className="text-xs text-muted-foreground">Limits reset daily at midnight Mountain Time.</p>
             )}
+          </div>
+        </Section>
+
+        {/* Job scraping */}
+        <Section
+          icon={<Search size={14} />}
+          title="Job scraping"
+          description="When enabled, EverApply will automatically scrape and match new jobs for you daily."
+        >
+          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-medium text-foreground">
+                {scrapingEnabled ? 'Scraping active' : 'Scraping paused'}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {scrapingEnabled
+                  ? 'New job matches will be fetched on the daily schedule.'
+                  : 'No new jobs will be fetched until you turn this back on.'}
+              </span>
+            </div>
+            <Switch
+              checked={scrapingEnabled}
+              disabled={isTogglingScrap}
+              onCheckedChange={(val) => toggleScraping(val)}
+            />
           </div>
         </Section>
 
