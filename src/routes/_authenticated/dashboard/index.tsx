@@ -630,7 +630,8 @@ function Dashboard() {
   useEffect(() => {
     if (!lastVisitedJobId) return
     const handler = (e: MouseEvent) => {
-      if (!(e.target as Element).closest('[data-visited-card="true"]')) {
+      const target = e.target as Element
+      if (!target.closest('[data-visited-card="true"]') && !target.closest('[role="dialog"]')) {
         setLastVisitedJobId(null)
       }
     }
