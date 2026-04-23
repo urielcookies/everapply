@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { z } from 'zod'
 import { isEqual } from 'lodash'
 import { useAuth } from '@clerk/clerk-react'
-import { MapPin, DollarSign, ShieldAlert, Wifi } from 'lucide-react'
+import { MapPin, DollarSign, ShieldAlert, Wifi, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import { useUserStore } from '#/stores/useUserStore'
 import { everApplyApi } from '#/lib/api'
@@ -14,6 +14,7 @@ import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '#/components/ui/toggle-group'
 import { Button } from '#/components/ui/button'
+import { Slider } from '#/components/ui/slider'
 
 export const Route = createFileRoute('/_authenticated/preferences')({
   component: Preferences,
@@ -22,6 +23,20 @@ export const Route = createFileRoute('/_authenticated/preferences')({
 type RemoteType = 'remote' | 'hybrid' | 'onsite'
 
 const RADIUS_OPTIONS = [5, 10, 15, 25, 50, 100] as const
+const SALARY_MAX = 300000
+
+function formatSalary(val: number): string {
+  if (val >= 1000000) return `$${(val / 1000000).toFixed(1)}M`
+  return `$${Math.round(val / 1000)}k`
+}
+
+function salaryRangeLabel(range: [number, number]): string {
+  const [min, max] = range
+  if (min === 0 && max === SALARY_MAX) return 'Any'
+  if (min === 0) return `Up to ${formatSalary(max)}`
+  if (max === SALARY_MAX) return `${formatSalary(min)}+`
+  return `${formatSalary(min)} – ${formatSalary(max)}`
+}
 
 const preferencesSchema = z.object({
   remote_type: z.enum(['remote', 'hybrid', 'onsite']),
@@ -29,7 +44,9 @@ const preferencesSchema = z.object({
   radius_miles: z.number().optional(),
   salary_min: z.number().min(0).optional(),
   salary_max: z.number().min(0).optional(),
+  salary_enabled: z.boolean(),
   exclude_clearance: z.boolean(),
+  min_match_score: z.number().min(0).max(100).nullable().optional(),
 })
 
 type Preferences = z.infer<typeof preferencesSchema>
@@ -41,7 +58,9 @@ function getDefaults(prefs: Record<string, unknown> | null): Preferences {
     radius_miles: (prefs?.radius_miles as number) ?? 25,
     salary_min: (prefs?.salary_min as number) ?? undefined,
     salary_max: (prefs?.salary_max as number) ?? undefined,
+    salary_enabled: (prefs?.salary_enabled as boolean) ?? false,
     exclude_clearance: (prefs?.exclude_clearance as boolean) ?? false,
+    min_match_score: (prefs?.min_match_score as number | null) ?? null,
   }
 }
 
@@ -204,63 +223,118 @@ function Preferences() {
         <Section
           icon={<DollarSign size={14} />}
           title="Salary range"
-          description="Only show jobs within your expected compensation range. Leave blank to see all."
+          description="Set your expected compensation range. Toggle the filter to apply it when browsing matches."
         >
-          <div className="grid grid-cols-2 gap-3">
-            <form.Field name="salary_min">
-              {(field) => (
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Minimum
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                      $
+          <form.Field name="salary_enabled">
+            {(enabledField) => (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-foreground">
+                      Enable salary filter
                     </span>
-                    <Input
-                      type="number"
-                      placeholder="80,000"
-                      className="pl-6"
-                      value={field.state.value ?? ''}
-                      onChange={(e) =>
-                        field.handleChange(
-                          e.target.value ? Number(e.target.value) : undefined,
-                        )
-                      }
-                      onBlur={triggerSave}
-                    />
+                    <span className="text-xs text-muted-foreground">
+                      {enabledField.state.value
+                        ? 'Only show jobs within your salary range'
+                        : 'Salary range will not be used as a filter'}
+                    </span>
                   </div>
+                  <Switch
+                    checked={enabledField.state.value}
+                    onCheckedChange={(val) => { enabledField.handleChange(val); triggerSave() }}
+                  />
                 </div>
-              )}
-            </form.Field>
 
-            <form.Field name="salary_max">
-              {(field) => (
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Maximum
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                      $
+                {enabledField.state.value && (
+                  <form.Field name="salary_min">
+                    {(minField) => (
+                      <form.Field name="salary_max">
+                        {(maxField) => {
+                          const range: [number, number] = [
+                            minField.state.value ?? 0,
+                            maxField.state.value ?? SALARY_MAX,
+                          ]
+                          return (
+                            <div className="flex flex-col gap-2 px-1">
+                              <span className="font-mono text-xs font-semibold text-foreground">
+                                {salaryRangeLabel(range)}
+                              </span>
+                              <Slider
+                                value={range}
+                                min={0}
+                                max={SALARY_MAX}
+                                step={5000}
+                                onValueChange={(val) => {
+                                  const [min, max] = val as [number, number]
+                                  minField.handleChange(min === 0 ? undefined : min)
+                                  maxField.handleChange(max === SALARY_MAX ? undefined : max)
+                                }}
+                                onValueCommitted={() => triggerSave()}
+                              />
+                            </div>
+                          )
+                        }}
+                      </form.Field>
+                    )}
+                  </form.Field>
+                )}
+              </div>
+            )}
+          </form.Field>
+        </Section>
+
+        {/* Min. Match Score */}
+        <Section
+          icon={<Target size={14} />}
+          title="Min. match score"
+          description="Hide jobs below this score on your dashboard. Disable to show all matches."
+        >
+          <form.Field name="min_match_score">
+            {(field) => (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3.5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium text-foreground">
+                      Apply minimum match score
                     </span>
-                    <Input
-                      type="number"
-                      placeholder="150,000"
-                      className="pl-6"
-                      value={field.state.value ?? ''}
-                      onChange={(e) =>
-                        field.handleChange(
-                          e.target.value ? Number(e.target.value) : undefined,
-                        )
-                      }
-                      onBlur={triggerSave}
+                    <span className="text-xs text-muted-foreground">
+                      {field.state.value != null
+                        ? `Hiding jobs below ${field.state.value}%`
+                        : 'All matches are visible regardless of score'}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={field.state.value != null}
+                    onCheckedChange={(val) => {
+                      field.handleChange(val ? 70 : null)
+                      triggerSave()
+                    }}
+                  />
+                </div>
+
+                {field.state.value != null && (
+                  <div className="flex flex-col gap-2 px-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-xs font-semibold text-foreground">
+                        {field.state.value}%
+                      </span>
+                    </div>
+                    <Slider
+                      value={[field.state.value]}
+                      min={0}
+                      max={100}
+                      step={5}
+                      onValueChange={(val) => {
+                        const v = typeof val === 'number' ? val : val[0]
+                        field.handleChange(v)
+                      }}
+                      onValueCommitted={() => triggerSave()}
                     />
                   </div>
-                </div>
-              )}
-            </form.Field>
-          </div>
+                )}
+              </div>
+            )}
+          </form.Field>
         </Section>
 
         {/* Security Clearance */}

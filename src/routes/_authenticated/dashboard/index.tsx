@@ -563,9 +563,16 @@ function Dashboard() {
   const [reasonExpanded, setReasonExpanded] = useState(false)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
   const [lastVisitedJobId, setLastVisitedJobId] = useState<string | null>(null)
-  const [minScore, setMinScore] = useState<number>(70)
-  const [salaryEnabled, setSalaryEnabled] = useState<boolean>(false)
-  const [salaryRange, setSalaryRange] = useState<[number, number]>([0, SALARY_MAX])
+  const [minScore, setMinScore] = useState<number>(
+    (user.preferences?.min_match_score as number | null) ?? 0
+  )
+  const [salaryEnabled, setSalaryEnabled] = useState<boolean>(
+    (user.preferences?.salary_enabled as boolean) ?? false
+  )
+  const [salaryRange, setSalaryRange] = useState<[number, number]>([
+    (user.preferences?.salary_min as number) ?? 0,
+    (user.preferences?.salary_max as number) ?? SALARY_MAX,
+  ])
   const [generatingMatchId, setGeneratingMatchId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -610,13 +617,26 @@ function Dashboard() {
     },
   })
 
+  const { mutate: savePreferences } = useMutation({
+    mutationFn: (payload: { min_match_score?: number; salary_enabled?: boolean }) =>
+      everApplyApi('/users/preferences', getToken, {
+        method: 'PUT',
+        data: payload,
+      }),
+  })
+
   const handleMinScoreChange = (val: number) => {
     setMinScore(val)
+  }
+
+  const handleMinScoreCommit = (val: number) => {
+    savePreferences({ min_match_score: val })
   }
 
   const handleSalaryEnabledChange = (enabled: boolean) => {
     setSalaryEnabled(enabled)
     if (!enabled) setSalaryRange([0, SALARY_MAX])
+    savePreferences({ salary_enabled: enabled })
   }
 
   const handleSalaryRangeChange = (val: [number, number]) => {
@@ -731,6 +751,7 @@ function Dashboard() {
                   max={100}
                   step={5}
                   onValueChange={(val) => handleMinScoreChange(typeof val === 'number' ? val : val[0])}
+                  onValueCommitted={(val) => handleMinScoreCommit(typeof val === 'number' ? val : val[0])}
                 />
               </div>
             </div>
