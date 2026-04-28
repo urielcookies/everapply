@@ -94,8 +94,13 @@ function Preferences() {
   const { user, fetchUser } = useUserStore()
   const { getToken } = useAuth()
 
+  type PreferencesPayload = Omit<Preferences, 'salary_min' | 'salary_max'> & {
+    salary_min?: number | null
+    salary_max?: number | null
+  }
+
   const { mutateAsync: savePreferences } = useMutation({
-    mutationFn: (payload: Preferences) =>
+    mutationFn: (payload: PreferencesPayload) =>
       everApplyApi('/users/preferences', getToken, {
         method: 'PUT',
         data: payload,
@@ -118,8 +123,8 @@ function Preferences() {
       await savePreferences({
         ...result.data,
         preferred_location: result.data.preferred_location || undefined,
-        salary_min: result.data.salary_min || undefined,
-        salary_max: result.data.salary_max || undefined,
+        salary_min: result.data.salary_min ?? null,
+        salary_max: result.data.salary_max ?? null,
         radius_miles: isEqual(result.data.remote_type, 'remote')
           ? undefined
           : result.data.radius_miles,
